@@ -93,15 +93,21 @@ O worker é gerenciado por agents. Worker coleta informações e faz o deploy.
 
 ## Configuração do controlador
 
-- `topology` -> lista todas as máquinas _disponíveis_ (mas não necessariamente
-  vivas) na rede.[^topology-not-alive]
+- `topology` -> lista todas as máquinas a serem utilizadas como nós (tanto
+  controlador quanto workers) no sistema.[^topology-not-alive]
   - `kind` -> Especifica se a máquina é um nó controlador ou worker.
   - `ip` -> Endereço real da máquina.
 
+Embora seja ideal (especialmente sob a perspectiva de alta disponibilidade) ter
+um sistema com vários controladores disponíveis, para simplificar o trabalho
+optaremos por impor um limite de apenas _um_ controlador por sistema. Se mais de
+um nó for especificado como controlador na configuração, a inicialização do
+sistema falhará.
+
 [^topology-not-alive]:
     Se uma máquina listada em `topology` não estiver disponível (i.e., não
-    estiver _alive_), o controlador envia algum tipo de alerta para o
-    administrador do sistema.
+    estiver _alive_), durante a execução do sistema, o controlador envia algum
+    tipo de alerta para o administrador do sistema.
 
 ## Configuração do agent
 
