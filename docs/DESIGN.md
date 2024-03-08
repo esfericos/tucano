@@ -1,5 +1,44 @@
 # Tucano
 
+# Diagrama do sistema
+
+```mermaid
+graph TB
+    user
+    user -- request --> balancer
+
+    sysadmin
+    sysadmin -- (http) configures --> deployer
+    agent_mgr -- alerts --> sysadmin
+
+    subgraph system-network
+
+        subgraph ctrl
+            deployer
+            balancer
+            agent_mgr
+            discovery
+
+            deployer --> discovery
+            discovery --- balancer
+            agent_mgr --- discovery
+        end
+
+        balancer -- routes requests --> program
+        deployer -- (http) deploy service --> runner
+        monitor -- (http) send metrics and status --> agent_mgr
+
+        subgraph worker
+            monitor
+            runner
+            program
+
+            runner --> program
+        end
+
+    end
+```
+
 # Definições iniciais
 
 - `node`, um servidor que pertence à rede. Pode ser de dois tipos:
