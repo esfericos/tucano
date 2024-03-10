@@ -1,0 +1,6 @@
+imports_granularity = "Crate"
+newline_style = "Unix"
+
+# Unstable options
+wrap_comments = true
+comment_width = 80
