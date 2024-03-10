@@ -1,0 +1,12 @@
+[workspace]
+members = ["ctl", "worker"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+
+[workspace.lints.clippy]
+all = "warn"
+pedantic = "warn"
+wildcard_imports = { level = "allow", priority = 2 }
