@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+service Controller {
+  rpc Configure() returns (stream ConfigStatus);
+}
+
+service DeployerService {
+  rpc Deploy(DeployMessage) returns (stream DeployStatus);
+  rpc DropDeployment(DropDeployMessage) returns (stream DropDeployStatus);
+  rpc ServiceStatus(ServiceStatusMessage) returns (WorkerStatus);
+}
+
+service AgentManagerService {
+  rpc PushStatus(WorkerStatus);
+}
+
+service WorkerRunnerService {
+  rpc Deploy(DeployMessage) returns (stream DeployStatus);
+  rpc DropDeployment(DropDeployMessage) returns (stream DropDeployStatus);
+  rpc Status() returns (WorkerStatus);
+}
+
+message ServiceStatusMessage {
+  string service_name = 1;
+}
+
+enum ConfigStatusState {
+  CONFIG_STATUS_STATE_UNKNOWN = 0;
+  CONFIG_STATUS_STATE_STARTED = 1;
+  CONFIG_STATUS_STATE_APPLIED = 2;
+}
+
+message ConfigStatus {
+  ConfigStatusState state = 1;
+}
+
+message WorkerStatus {
+  double cpu_usage = 1;
+  double mem_usage = 2;
+  // XX: More metrics?
+}
+
+message DeployMessage {
+  string service_name = 1;
+  NetworkOptions network_options = 2;
+  string build_script = 3;
+  string runtime_string = 4;
+  uint32 concurrency = 5;
+}
+
+message NetworkOptions {
+  bool open_ingress = 1;
+  optional uint32 expose_port = 2;
+}
+
+message DropDeployMessage {
+  string service_name = 1;
+}
+
+enum DeployActionState {
+  DEPLOY_ACTION_STATE_UNKNOWN = 0;
+  DEPLOY_ACTION_STATE_STARTED = 1;
+  DEPLOY_ACTION_STATE_RUNNING = 2;
+  DEPLOY_ACTION_STATE_FINISHED = 3;
+}
+
+message DeployStatus {
+  DeployActionState state = 1;
+}
+
+enum DropDeployState {
+  DROP_DEPLOY_STATE_UNKNOWN = 0;
+  DROP_DEPLOY_STATE_STARTED = 1;
+  DROP_DEPLOY_STATE_DROPPED = 2;
+}
+
+message DropDeployStatus {
+  DropDeployState state = 1;
+}
