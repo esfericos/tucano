@@ -9,6 +9,7 @@ graph TB
 
     sysadmin
     sysadmin -- (http) configures --> deployer
+    sysadmin ---> config_mgr
     agent_mgr -- alerts --> sysadmin
 
     subgraph system-network
@@ -17,6 +18,7 @@ graph TB
             deployer
             balancer
             agent_mgr
+            config_mgr
             discovery
 
             deployer --> discovery
