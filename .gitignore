@@ -1,1 +1,4 @@
-/target
+target
+*.log
+ignore*
+.DS_Store
