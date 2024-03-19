@@ -2,6 +2,8 @@
 name = "ctl"
 version.workspace = true
 edition.workspace = true
-lints.workspace = true
+
+[lints]
+workspace = true
 
 [dependencies]
