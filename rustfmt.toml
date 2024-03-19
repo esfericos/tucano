@@ -2,5 +2,6 @@ imports_granularity = "Crate"
 newline_style = "Unix"
 
 # Unstable options
+group_imports = "StdExternalCrate"
 wrap_comments = true
 comment_width = 80
