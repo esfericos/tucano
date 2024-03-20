@@ -25,4 +25,5 @@ uuid = { version = "1", features = ["serde", "v4"] }
 [workspace.lints.clippy]
 all = "warn"
 pedantic = "warn"
-wildcard_imports = { level = "allow", priority = 2 }
+wildcard_imports = "allow"
+module_name_repetitions = "allow"
