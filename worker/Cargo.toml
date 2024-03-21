@@ -7,4 +7,4 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-sysinfo = "0.30.7"
+sysinfo = { workspace = true }

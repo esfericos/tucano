@@ -1,9 +1,8 @@
-use sysinfo::System;
 mod metrics;
-use crate::metrics::{Metric, MemoryMeasure};
+use sysinfo::System;
+use crate::metrics::{MetricsReport, SpaceUnit};
 
 fn main() {
-  let metrics = Metric::new(MemoryMeasure::Gigabyte);
+  let metrics = MetricsReport::new(SpaceUnit::MiB);
   println!("{:?}", metrics);
-
 }
