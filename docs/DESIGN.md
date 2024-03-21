@@ -2,40 +2,44 @@
 
 # Diagrama do sistema
 
+<!-- https://mermaid.live/edit -->
+
 ```mermaid
 graph TB
-    user
+    user["User"]
     user -- request --> balancer
 
-    sysadmin
+    sysadmin["SysAdmin"]
     sysadmin -- (http) configures --> deployer
-    sysadmin ---> config_mgr
-    agent_mgr -- alerts --> sysadmin
+    sysadmin ---> config
+    sysadmin --> inspector
+    agent -- alerts --> sysadmin
 
     subgraph system-network
 
-        subgraph ctrl
-            deployer
-            balancer
-            agent_mgr
-            config_mgr
-            discovery
+        subgraph Controller
+            deployer["Deployer"]
+            balancer["Load Balancer"]
+            agent["Agent Manager"]
+            config["Config Manager"]
+            inspector["Inspector"]
+            discovery["Discovery"]
 
             deployer --> discovery
             discovery --- balancer
-            agent_mgr --- discovery
+            agent --- discovery
         end
 
-        balancer -- routes requests --> program
+        balancer -- routes requests --> service
         deployer -- (http) deploy service --> runner
-        monitor -- (http) send metrics and status --> agent_mgr
+        monitor -- (http) send metrics and status --> agent
 
-        subgraph worker
-            monitor
-            runner
-            program
+        subgraph Worker
+            monitor["Monitor"]
+            runner["Runner"]
+            service["(service)"]
 
-            runner --> program
+            runner --> service
         end
 
     end

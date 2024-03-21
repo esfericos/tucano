@@ -2,7 +2,9 @@
 name = "worker"
 version.workspace = true
 edition.workspace = true
-lints.workspace = true
+
+[lints]
+workspace = true
 
 [dependencies]
 sysinfo = "0.30.7"
