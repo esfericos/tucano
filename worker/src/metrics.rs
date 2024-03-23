@@ -1,6 +1,8 @@
 use std::{thread::sleep, time::Duration};
+
 use sysinfo::System;
 
+#[derive(Clone, Copy)]
 pub enum SpaceUnit {
     MiB,
     GiB,
@@ -15,7 +17,6 @@ impl SpaceUnit {
     }
 }
 
-
 #[derive(Debug)]
 pub struct Metrics {
     free_memory: f64,
@@ -23,48 +24,49 @@ pub struct Metrics {
 }
 
 pub struct MetricsReport {
-    system: System
+    system: System,
 }
 
 impl MetricsReport {
     pub fn new() -> Self {
         Self {
-            system: System::new_all()
+            system: System::new_all(),
         }
     }
 
-    pub fn get_metrics(&self, measure: SpaceUnit) -> Metrics {
+    pub fn get_metrics(&mut self, measure: SpaceUnit) -> Metrics {
         Metrics {
-            cpu_usage: get_cpu_usage(),
-            free_memory: get_memory(&measure)
+            cpu_usage: self.get_cpu_usage(),
+            free_memory: self.get_memory(&measure),
         }
     }
 }
 
-fn get_memory(measure: &SpaceUnit) -> f64 {
-    get_memory_as_byte() / measure.byte_conv_factor()
-}
+impl MetricsReport {
+    fn get_memory(&mut self, measure: &SpaceUnit) -> f64 {
+        self.get_memory_as_byte() / measure.byte_conv_factor()
+    }
 
-fn get_memory_as_byte() -> f64 {
-    let mut system = System::new_all();
-    system.refresh_memory();
+    fn get_memory_as_byte(&mut self) -> f64 {
+        self.system.refresh_memory();
 
-    (system.total_memory() - system.used_memory()) as f64
-}
+        (self.system.total_memory() - self.system.used_memory()) as f64
+    }
 
-fn get_cpu_usage() -> f32 {
-    let mut system = System::new_all();
+    fn get_cpu_usage(&mut self) -> f32 {
+        self.system.refresh_cpu();
+        sleep(Duration::from_millis(500));
+        self.system.refresh_cpu();
 
-    system.refresh_cpu();
-    sleep(Duration::from_millis(500));
-    system.refresh_cpu();
+        let all_cpus_usages: Vec<f32> = self
+            .system
+            .cpus()
+            .iter()
+            .map(|cpu| cpu.cpu_usage())
+            .collect();
 
-    let all_cpus_usages: Vec<f32> = system
-        .cpus()
-        .iter()
-        .map(|cpu| cpu.cpu_usage())
-        .collect();
-    let cpu_usage = all_cpus_usages.iter().sum::<f32>();
+        let cpu_usage = all_cpus_usages.iter().sum::<f32>();
 
-    cpu_usage / all_cpus_usages.len() as f32
+        cpu_usage / all_cpus_usages.len() as f32
+    }
 }
