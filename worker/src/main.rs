@@ -1,9 +1,8 @@
 mod metrics;
-use sysinfo::System;
 
 use crate::metrics::{MetricsReport, SpaceUnit};
 
 fn main() {
-    let metrics = MetricsReport::new(SpaceUnit::MiB);
-    println!("{:?}", metrics);
+    let metrics_report = MetricsReport::new();
+    let metric = metrics_report.get_metrics(SpaceUnit::GiB);
 }
