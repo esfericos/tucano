@@ -4,25 +4,10 @@ use sysinfo::System;
 
 const CPU_DELAY_IN_MILLIS: u64 = 500;
 
-#[derive(Clone, Copy)]
-pub enum SpaceUnit {
-    MiB,
-    GiB,
-}
-
-impl SpaceUnit {
-    pub fn byte_conv_factor(&self) -> f64 {
-        match &self {
-            SpaceUnit::GiB => f64::powi(1024.0, 3),
-            SpaceUnit::MiB => f64::powi(1024.0, 2),
-        }
-    }
-}
-
 /// Struct containing the free_memory and cpu_usage on the current machine
 #[derive(Debug)]
 pub struct Metrics {
-    free_memory: f64,
+    free_memory: u64,
     cpu_usage: f32,
 }
 
@@ -38,7 +23,7 @@ impl MetricsReport {
     /// CPU Percentage Usage, Free Memory Space
     ///
     /// **⚠ Instantiate as mutable**
-    /// 
+    ///
     /// | Keep in mind, you only need to instantiate ONE `MetricsReport`
     ///
     /// ```
@@ -59,25 +44,25 @@ impl MetricsReport {
     ///
     /// When calling this method, will sleep the thread for 500ms, customizable
     /// in the `CPU_DELAY_IN_MILLIS` constant
-    pub fn get_metrics(&mut self, measure: SpaceUnit) -> Metrics {
+    pub fn get_metrics(&mut self) -> Metrics {
         Metrics {
             cpu_usage: self.get_cpu_usage(),
-            free_memory: self.get_memory(&measure),
+            free_memory: self.get_memory(),
         }
     }
 }
 
 impl MetricsReport {
-    /// Returns the free_memory size with the SpaceUnit specified in params
-    fn get_memory(&mut self, measure: &SpaceUnit) -> f64 {
-        self.get_memory_as_byte() / measure.byte_conv_factor()
+    /// Returns the free_memory size in MiB
+    fn get_memory(&mut self) -> u64 {
+        self.get_memory_as_byte() / 1024 / 1024
     }
 
     /// Returns the free_memory size in bytes
-    fn get_memory_as_byte(&mut self) -> f64 {
+    fn get_memory_as_byte(&mut self) -> u64 {
         self.system.refresh_memory();
 
-        (self.system.total_memory() - self.system.used_memory()) as f64
+        (self.system.total_memory() - self.system.used_memory())
     }
 
     /// Returns the CPU Usage in percentage
