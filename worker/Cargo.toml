@@ -7,4 +7,5 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
+proto = {workspace = true}
 sysinfo = { workspace = true }

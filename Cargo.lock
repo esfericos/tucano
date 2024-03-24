@@ -365,5 +365,6 @@ checksum = "32b752e52a2da0ddfbdbcc6fceadfeede4c939ed16d13e648833a61dfb611ed8"
 name = "worker"
 version = "0.1.0"
 dependencies = [
+ "proto",
  "sysinfo",
 ]

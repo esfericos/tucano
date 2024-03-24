@@ -1,6 +1,6 @@
 mod metrics;
 
-use crate::metrics::{MetricsReport};
+use crate::metrics::MetricsReport;
 
 fn main() {
     let mut metrics_report = MetricsReport::new();
