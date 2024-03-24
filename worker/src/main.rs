@@ -1,3 +1,9 @@
+mod metrics;
+
+use crate::metrics::MetricsReport;
+
 fn main() {
-    println!("Hello, world!");
+    let mut metrics_report = MetricsReport::new();
+    let metric = metrics_report.get_metrics();
+    println!("{metric:?}");
 }
