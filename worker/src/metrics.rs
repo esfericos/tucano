@@ -46,9 +46,7 @@ impl MetricsReport {
             mem_used_mib: self.get_used_memory(),
         }
     }
-}
 
-impl MetricsReport {
     /// Returns the CPU Usage in percentage
     fn get_cpu_usage(&mut self) -> f64 {
         self.system.refresh_cpu();
