@@ -10,14 +10,14 @@ graph TB
     user -- request --> balancer
 
     sysadmin["SysAdmin"]
-    sysadmin -- (http) configures --> deployer
-    sysadmin ---> config
+    sysadmin -- (http) request --> http
     sysadmin --> inspector
     agent -- alerts --> sysadmin
 
     subgraph system-network
 
         subgraph Controller
+            http["http"]
             deployer["Deployer"]
             balancer["Load Balancer"]
             agent["Agent Manager"]
@@ -32,7 +32,11 @@ graph TB
 
         balancer -- routes requests --> service
         deployer -- (http) deploy service --> runner
-        monitor -- (http) send metrics and status --> agent
+        monitor -- (http) send metrics and status --> http
+        http -- configures --> deployer
+        http -- sends metrics --> agent
+        http --> config
+
 
         subgraph Worker
             monitor["Monitor"]
@@ -70,6 +74,9 @@ graph TB
 # Descrição dos componentes
 
 - `ctl`
+  - `http` -> Recebe requisições HTTP de `workers` e do administrador
+    do sistema, redirecionando cada uma delas para o seu componente ao 
+    qual se destinam.  
   - `deployer` -> Aceita a configuração estática de um serviço (inclui a
     configuração em si junto da imagem) e inicia o processo de deploy de acordo
     com os parâmetros especificados na configuração. Estará disponível a partir
