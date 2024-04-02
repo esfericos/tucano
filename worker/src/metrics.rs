@@ -1,8 +1,7 @@
 use std::{thread::sleep, time::Duration};
 
-use sysinfo::System;
-
 use proto::common::node::Metrics;
+use sysinfo::System;
 
 const CPU_DELAY_IN_MILLIS: u64 = 500;
 
@@ -10,7 +9,7 @@ const CPU_DELAY_IN_MILLIS: u64 = 500;
 pub struct MetricsReport {
     system: System,
 }
-
+#[allow(clippy::cast_precision_loss)]
 impl MetricsReport {
     /// Instantiates a new `MetricsReport`.
     ///
@@ -42,7 +41,7 @@ impl MetricsReport {
     pub fn get_metrics(&mut self) -> Metrics {
         Metrics {
             cpu_usage: self.get_cpu_usage(),
-            mem_total_mib: self.get_total_memory(), 
+            mem_total_mib: self.get_total_memory(),
             mem_used_mib: self.get_used_memory(),
         }
     }
@@ -75,7 +74,7 @@ impl MetricsReport {
     fn get_total_memory_as_byte(&mut self) -> u64 {
         self.system.refresh_memory();
 
-       self.system.total_memory()
+        self.system.total_memory()
     }
 
     // Returns the `used_memory` in MiB
@@ -86,5 +85,5 @@ impl MetricsReport {
     // Returns the `used_memory` in bytes
     fn get_used_memory_as_byte(&mut self) -> u64 {
         self.system.used_memory()
-    } 
+    }
 }

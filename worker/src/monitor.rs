@@ -1,9 +1,6 @@
 use eyre::Result;
 use proto::common::node::Metrics;
-use reqwest::{
-    Client,
-    Url
-};
+use reqwest::{Client, Url};
 
 // A connection pool that sends the collected `Metrics` to the `http` component.
 pub struct Monitor {
@@ -21,18 +18,17 @@ impl Monitor {
     //
     // | Keep in mind that you only need to instantiate `Monitor` ONCE.
     pub fn new(url: &str) -> Result<Self> {
-        
-        let client = Client::builder()
-            .build()?;
+        let client = Client::builder().build()?;
 
-        let base_url = Url::parse(&url)?.to_string();
+        let base_url = Url::parse(url)?.to_string();
 
-        Ok(Self { client, base_url})
+        Ok(Self { client, base_url })
     }
 
     // Sends a POST request containing `Metrics` to the `http` component.
     pub async fn send_request(&mut self, metrics: &Metrics) -> Result<()> {
-        self.client.post(&self.base_url)
+        self.client
+            .post(&self.base_url)
             .json(metrics)
             .send()
             .await?;
