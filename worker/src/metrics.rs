@@ -12,7 +12,7 @@ pub struct MetricsReport {
 }
 
 impl MetricsReport {
-    /// Instantiates a new MetricsReport.
+    /// Instantiates a new `MetricsReport`.
     ///
     /// Responsable for collecting metrics about the System, such as
     /// CPU Percentage Usage, Free Memory Space
@@ -58,7 +58,7 @@ impl MetricsReport {
             .system
             .cpus()
             .iter()
-            .map(|cpu| cpu.cpu_usage() as f64)
+            .map(|cpu| f64::from(cpu.cpu_usage()))
             .collect();
 
         let cpu_usage = all_cpus_usages.iter().sum::<f64>();
@@ -66,24 +66,24 @@ impl MetricsReport {
         cpu_usage / all_cpus_usages.len() as f64
     }
 
-    /// Returns the total_memory size in MiB
+    /// Returns the `total_memory` size in MiB
     fn get_total_memory(&mut self) -> f64 {
         (self.get_total_memory_as_byte() / 1024 / 1024) as f64
     }
 
-    // Returns the total_memory in bytes
+    // Returns the `total_memory` in bytes
     fn get_total_memory_as_byte(&mut self) -> u64 {
         self.system.refresh_memory();
 
        self.system.total_memory()
     }
 
-    // Returns the used_memory in MiB
+    // Returns the `used_memory` in MiB
     fn get_used_memory(&mut self) -> f64 {
         (self.get_used_memory_as_byte() / 1024 / 1024) as f64
     }
 
-    // Returns the used_memory in bytes
+    // Returns the `used_memory` in bytes
     fn get_used_memory_as_byte(&mut self) -> u64 {
         self.system.used_memory()
     } 

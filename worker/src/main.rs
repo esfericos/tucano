@@ -3,7 +3,6 @@ mod monitor;
 
 use eyre::Result;
 use std::{thread::sleep, time::Duration};
-use tokio;
 
 use crate::metrics::MetricsReport;
 use crate::monitor::Monitor;
@@ -14,10 +13,10 @@ const TIME_STAMP_IN_MILLIS: u64 = 500;
 
 #[tokio::main]
 async fn main()-> Result<()>{
-    let mut monitor = Monitor::new("http://localhost:8080/http/agt_mgr".to_string())?;
-    
+    let mut monitor = Monitor::new("http://localhost:8080/http/agt_mgr")?;
+    let mut metrics_report: MetricsReport = MetricsReport::new();
+
     loop{
-        let mut metrics_report: MetricsReport = MetricsReport::new();
         let metric = metrics_report.get_metrics();
         monitor.send_request(&metric).await?;
         println!("{metric:?}");
