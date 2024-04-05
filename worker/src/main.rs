@@ -4,7 +4,7 @@ use std::{thread::sleep, time::Duration};
 use eyre::Result;
 use monitor::{MetricsCollector, MetricsSender};
 
-/// `clap` crate report_interval placeholder
+/// `clap` crate report interval placeholder
 /// The value 500 is for quick visualization purposes.
 const REPORT_INTERVAL_IN_MILLIS: u64 = 500;
 

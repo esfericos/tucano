@@ -22,7 +22,8 @@ impl MetricsCollector {
 
     /// Get the `cpu_usage` and `free_memory` metrics from the current system.
     ///
-    /// When calling this method, will sleep the thread for `CPU_DELAY_IN_MILLIS`.
+    /// When calling this method, will sleep the thread for
+    /// `CPU_DELAY_IN_MILLIS`.
     pub fn get_metrics(&mut self) -> Metrics {
         Metrics {
             cpu_usage: self.get_cpu_usage(),
