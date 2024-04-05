@@ -18,16 +18,17 @@ chrono = { version = "0.4", default-features = false, features = [
     "std",
     "serde",
 ] }
-eyre = { version = "0.6.12" }
-reqwest = { version = "0.12.1" , features = ["json"]}
+eyre = "0.6.12"
+reqwest = { version = "0.12.1" , features = ["json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-uuid = { version = "1", features = ["serde", "v4"] }
-sysinfo = { version = "0.30.7" }
+sysinfo = "0.30.7"
 tokio = { version = "1.36.0", features = ["full"] }
+uuid = { version = "1", features = ["serde", "v4"] }
 
 [workspace.lints.clippy]
 all = "warn"
 pedantic = "warn"
 wildcard_imports = "allow"
 module_name_repetitions = "allow"
+cast_precision_loss = "allow"

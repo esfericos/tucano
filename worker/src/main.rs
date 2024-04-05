@@ -1,25 +1,24 @@
-mod metrics;
 mod monitor;
-
 use std::{thread::sleep, time::Duration};
 
 use eyre::Result;
+use monitor::{MetricsCollector, MetricsSender};
 
-use crate::{metrics::MetricsReport, monitor::Monitor};
+/// `clap` crate report_interval placeholder
+/// The value 500 is for quick visualization purposes.
+const REPORT_INTERVAL_IN_MILLIS: u64 = 500;
 
-// The value 500 is for quick visualization purposes,
-// in production there will have a reasonable value
-const TIME_STAMP_IN_MILLIS: u64 = 500;
+/// `clap` crate url placeholder
+const AGT_MGR_REQUEST_URL: &str = "http://localhost:8080/http/agt_mgr";
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let mut monitor = Monitor::new("http://localhost:8080/http/agt_mgr")?;
-    let mut metrics_report: MetricsReport = MetricsReport::new();
+    let mut monitor = MetricsSender::new(AGT_MGR_REQUEST_URL)?;
+    let mut metrics_report: MetricsCollector = MetricsCollector::new();
 
     loop {
-        let metric = metrics_report.get_metrics();
-        monitor.send_request(&metric).await?;
-        println!("{metric:?}");
-        sleep(Duration::from_millis(TIME_STAMP_IN_MILLIS));
+        let metrics = metrics_report.get_metrics();
+        monitor.send_request(&metrics).await?;
+        sleep(Duration::from_millis(REPORT_INTERVAL_IN_MILLIS));
     }
 }
