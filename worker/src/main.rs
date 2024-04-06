@@ -13,12 +13,12 @@ const AGT_MGR_REQUEST_URL: &str = "http://localhost:8080/http/agt_mgr";
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let mut monitor = MetricsSender::new(AGT_MGR_REQUEST_URL)?;
+    let mut metrics_sender = MetricsSender::new(AGT_MGR_REQUEST_URL)?;
     let mut metrics_report: MetricsCollector = MetricsCollector::new();
 
     loop {
         let metrics = metrics_report.get_metrics();
-        monitor.send_request(&metrics).await?;
+        metrics_sender.send_request(&metrics).await?;
         sleep(Duration::from_millis(REPORT_INTERVAL_IN_MILLIS));
     }
 }

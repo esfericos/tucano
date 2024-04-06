@@ -5,22 +5,20 @@ use sysinfo::System;
 
 const CPU_DELAY_IN_MILLIS: u64 = 500;
 
-/// Struct containing system's information such as CPU and Memory.
+/// Responsable for collecting metrics about the System, such as
+/// CPU Percentage Usage, Free Memory Space.
 pub struct MetricsCollector {
     system: System,
 }
 impl MetricsCollector {
     /// Instantiates a new `MetricsCollector`.
-    ///
-    /// Responsable for collecting metrics about the System, such as
-    /// CPU Percentage Usage, Free Memory Space.
     pub fn new() -> Self {
         Self {
             system: System::new_all(),
         }
     }
 
-    /// Get the `cpu_usage` and `free_memory` metrics from the current system.
+    /// Get the `cpu_usages` and `free_memory` metrics from the current system.
     ///
     /// When calling this method, will sleep the thread for
     /// `CPU_DELAY_IN_MILLIS`.
@@ -32,19 +30,21 @@ impl MetricsCollector {
         }
     }
 
-    fn get_cpu_usage(&mut self) -> Vec<f64> {
+    fn get_cpu_usage(&mut self) -> f64 {
         self.system.refresh_cpu();
         sleep(Duration::from_millis(CPU_DELAY_IN_MILLIS));
         self.system.refresh_cpu();
 
-        let all_cpus_usages: Vec<f64> = self
+        let cpus_usages: Vec<f64> = self
             .system
             .cpus()
             .iter()
             .map(|cpu| f64::from(cpu.cpu_usage()))
             .collect();
 
-        all_cpus_usages
+        let sum_cpus_usages: f64 = cpus_usages.iter().sum();
+
+        sum_cpus_usages / cpus_usages.len() as f64
     }
 
     fn get_total_memory(&mut self) -> f64 {

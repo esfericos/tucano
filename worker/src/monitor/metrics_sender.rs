@@ -2,7 +2,8 @@ use eyre::Result;
 use proto::common::node::Metrics;
 use reqwest::{Client, Url};
 
-/// A connection pool that sends the collected `Metrics` to the `http`component.
+///  A connection pool that sends requests containing a JSON with the collected
+/// metrics   to the `http` component from `ctl` node.
 pub struct MetricsSender {
     client: Client,
     base_url: String,
@@ -10,9 +11,6 @@ pub struct MetricsSender {
 
 impl MetricsSender {
     /// Instantiates a new `MetricsSender`.
-    ///
-    ///  Sends requests containing a JSON with the collected metrics
-    ///   to the `http` component from `ctl` node.
     pub fn new(url: &str) -> Result<Self> {
         let client = Client::builder().build()?;
 

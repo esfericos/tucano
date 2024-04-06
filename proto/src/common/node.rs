@@ -22,8 +22,8 @@ pub enum NodeKind {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Metrics {
-    /// Collection of CPU usages.
-    pub cpu_usage: Vec<f64>,
+    /// The CPU usage, in MiB.
+    pub cpu_usage: f64,
     /// The total memory, in MiB.
     pub mem_total_mib: f64,
     /// The used memory, in MiB.
