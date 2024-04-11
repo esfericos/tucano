@@ -7,3 +7,7 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
+eyre.workspace = true
+proto.workspace = true
+sysinfo.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
