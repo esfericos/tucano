@@ -9,8 +9,5 @@ workspace = true
 [dependencies]
 eyre.workspace = true
 proto.workspace = true
-reqwest.workspace = true
-serde.workspace = true
-serde_json.workspace = true
 sysinfo.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
