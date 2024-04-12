@@ -1,11 +1,10 @@
-use eyre::Result;
+use std::sync::Arc;
+
 use tokio::time::sleep;
 
 use crate::{args::WorkerArgs, monitor::collector::MetricsCollector};
 
-/// Request [`MetricsCollector`] to collect [`Metrics`] within a given time
-/// interval.
-pub async fn push(args: WorkerArgs) -> Result<()> {
+pub async fn start_pusher(args: Arc<WorkerArgs>) {
     let mut metrics_report: MetricsCollector = MetricsCollector::new();
 
     loop {
