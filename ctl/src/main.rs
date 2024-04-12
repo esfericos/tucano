@@ -1,3 +1,7 @@
+use tracing::info;
+
 fn main() {
-    println!("Hello, world!");
+    setup::tracing();
+
+    info!("started controller");
 }

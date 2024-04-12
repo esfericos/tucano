@@ -1,0 +1,10 @@
+[package]
+name = "setup"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+tracing-subscriber.workspace = true
+
+[lints]
+workspace = true
