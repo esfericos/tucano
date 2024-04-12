@@ -10,4 +10,4 @@ workspace = true
 eyre.workspace = true
 proto.workspace = true
 sysinfo.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
+tokio.workspace = true
