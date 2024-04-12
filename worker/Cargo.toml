@@ -7,8 +7,11 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
+setup.workspace = true
+proto.workspace = true
+
 clap.workspace = true
 eyre.workspace = true
-proto.workspace = true
 sysinfo.workspace = true
 tokio.workspace = true
+tracing.workspace = true

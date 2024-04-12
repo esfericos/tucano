@@ -2,6 +2,7 @@ use std::{net::SocketAddr, time::Duration};
 
 use clap::{value_parser, Parser};
 
+#[derive(Debug)]
 pub struct WorkerArgs {
     /// Controller's address.
     pub controller_addr: SocketAddr,
