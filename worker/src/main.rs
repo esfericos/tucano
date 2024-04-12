@@ -1,8 +1,8 @@
 use eyre::Result;
-use tokio::time::sleep;
+use tokio::task::spawn;
 use tracing::info;
 
-use crate::{args::WorkerArgs, monitor::collector::MetricsCollector};
+use crate::{args::WorkerArgs, monitor::pusher};
 
 mod args;
 mod monitor;
@@ -14,11 +14,7 @@ async fn main() -> Result<()> {
     let args = WorkerArgs::parse();
     info!(?args, "started worker");
 
-    let mut metrics_report: MetricsCollector = MetricsCollector::new();
+    spawn(async { pusher::push(args).await });
 
-    loop {
-        sleep(args.metrics_report_interval).await;
-        let metrics = metrics_report.get_metrics();
-        println!("{metrics:#?}");
-    }
+    Ok(())
 }
