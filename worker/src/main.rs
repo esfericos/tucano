@@ -1,20 +1,19 @@
 use eyre::Result;
-use tokio::time::{sleep, Duration};
+use tokio::time::sleep;
 
-use crate::monitor::collector::MetricsCollector;
+use crate::{args::WorkerArgs, monitor::collector::MetricsCollector};
 
-pub mod monitor;
-
-/// `clap` crate report interval placeholder
-/// The value 500 is for quick visualization purposes.
-const REPORT_INTERVAL_IN_MILLIS: u64 = 500;
+mod args;
+mod monitor;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let args = WorkerArgs::parse();
+
     let mut metrics_report: MetricsCollector = MetricsCollector::new();
 
     loop {
-        sleep(Duration::from_millis(REPORT_INTERVAL_IN_MILLIS)).await;
+        sleep(args.metrics_report_interval).await;
         let metrics = metrics_report.get_metrics();
         println!("{metrics:#?}");
     }
