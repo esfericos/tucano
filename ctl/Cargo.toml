@@ -7,6 +7,9 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
+proto.workspace = true
 setup.workspace = true
 
+axum.workspace = true
+tokio.workspace = true
 tracing.workspace = true
