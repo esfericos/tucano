@@ -11,8 +11,9 @@ pub async fn run_server(discovery_handle: DiscoveryHandle) {
         .route("/worker/metrics", post(worker::push_metrics))
         .route(
             "/deploy",
-            post(deployer::deploy).with_state(discovery_handle),
-        );
+            post(deployer::deploy),
+        )
+        .with_state(discovery_handle);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     info!("HTTP listening at port 3000");
