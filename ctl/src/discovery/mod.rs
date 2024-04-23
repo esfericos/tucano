@@ -77,7 +77,7 @@ impl Discovery {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DiscoveryHandle(mpsc::Sender<Msg>);
 
 impl DiscoveryHandle {
