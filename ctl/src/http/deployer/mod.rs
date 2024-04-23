@@ -1,6 +1,7 @@
-use crate::discovery::DiscoveryHandle;
 use axum::{extract::State, Json};
 use proto::ctl::deployer::{DeployId, DeployReq, DeployRes, RevisionId};
+
+use crate::discovery::DiscoveryHandle;
 
 pub async fn deploy(
     State(discovery_handle): State<DiscoveryHandle>,
