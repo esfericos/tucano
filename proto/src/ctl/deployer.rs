@@ -1,6 +1,27 @@
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::common::service::{ServiceName, ServiceSpec};
+
+bty::brand!(
+    pub type RevisionId = Uuid;
+
+    pub type DeployId = Uuid;
+);
+
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+pub enum DeployStatus {
+    /// The deployment process is in progress (e.g. running the build script).
+    InProgress,
+    /// The deployment is finished and the service is running.
+    Running,
+    /// The service has gracefully stopped.
+    Stopped,
+    /// The service build script has failed.
+    BuildFailed,
+    /// The service has abruptly crashed.
+    Crashed,
+}
 
 /// Starts a new deploy in the system.
 #[derive(Debug, Serialize, Deserialize)]
@@ -11,7 +32,8 @@ pub struct DeployReq {
 /// Response for [`DeployReq`].
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeployRes {
-    // ???
+    pub revision_id: RevisionId,
+    pub deploy_ids: Vec<DeployId>,
 }
 
 /// Stops a given service from running in the system.

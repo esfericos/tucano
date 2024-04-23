@@ -1,8 +1,9 @@
+use std::sync::Arc;
+
 use eyre::Result;
-use tokio::time::sleep;
 use tracing::info;
 
-use crate::{args::WorkerArgs, monitor::collector::MetricsCollector};
+use crate::{args::WorkerArgs, monitor::pusher};
 
 mod args;
 mod monitor;
@@ -11,14 +12,16 @@ mod monitor;
 async fn main() -> Result<()> {
     setup::tracing();
 
-    let args = WorkerArgs::parse();
+    let args = Arc::new(WorkerArgs::parse());
     info!(?args, "started worker");
 
-    let mut metrics_report: MetricsCollector = MetricsCollector::new();
+    let pusher_handle = tokio::spawn({
+        let args = Arc::clone(&args);
+        async {
+            pusher::start_pusher(args).await;
+        }
+    });
+    pusher_handle.await.unwrap();
 
-    loop {
-        sleep(args.metrics_report_interval).await;
-        let metrics = metrics_report.get_metrics();
-        println!("{metrics:#?}");
-    }
+    Ok(())
 }

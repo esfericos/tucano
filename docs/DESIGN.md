@@ -75,6 +75,60 @@ graph TB
       may also optionally call a health check endpoint for the corresponding
       service.
 
+# Deployment seq. diagram
+
+```mermaid
+sequenceDiagram
+    %% Alice->>+John: Hello John, how are you?
+    %% Alice->>+John: John, can you hear me?
+    %% John-->>-Alice: Hi Alice, I can hear you!
+    %% John-->>-Alice: I feel great!
+    actor SysAdmin
+    participant deployer as ctl::deployer
+    participant discovery as ctl::discovery
+    participant wrk_mgr as ctl::worker_mgr
+
+    participant runner as wrk::runner
+    participant builder as wrk::builder
+    participant supervisor as wrk::supervisor
+
+    SysAdmin ->>+ deployer: New deploy request (via CLI)
+    deployer ->>+ discovery: Create new deployment
+    discovery ->>- deployer: Deployment ID
+    deployer ->>- SysAdmin: Deployment ID
+
+    deployer ->>+ discovery: Fetch available workers
+    discovery ->>- deployer: 
+
+    deployer ->> deployer: Select worker
+
+    deployer -->>+ runner: Start deployment
+
+    runner ->>+ builder: Execute build script
+    builder ->>- runner: Report status
+
+    alt build failed
+        runner -->> wrk_mgr: Report build failure
+        wrk_mgr -->> discovery: Record build failed status
+    else build ok
+        runner ->>+ supervisor: Start service
+        supervisor ->>- runner: Report status
+
+        alt service started
+            runner -->> wrk_mgr: Report service running
+            wrk_mgr -->> discovery: Record running status
+
+            opt service crashed
+                runner -->> wrk_mgr: Report failed
+                wrk_mgr -->> discovery: Record failed status
+            end
+        else service failed to start
+            runner -->> wrk_mgr: Report failure
+            wrk_mgr -->> discovery: Record failed status
+        end
+    end
+```
+
 # TODO
 
 - Add sequence diagrams for communication patterns.
