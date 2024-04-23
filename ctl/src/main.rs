@@ -1,4 +1,3 @@
-use std::sync::{Arc, Mutex};
 use tracing::info;
 
 use crate::discovery::Discovery;
@@ -20,7 +19,7 @@ async fn main() {
 
     let http_handle = tokio::spawn({
         let discovery_handle = discovery_handle.clone();
-  
+
         async move {
             http::run_server(discovery_handle).await;
         }

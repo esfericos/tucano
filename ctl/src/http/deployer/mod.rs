@@ -1,24 +1,26 @@
-use axum::{extract::State, Json};
-use proto::{
-    common::node::Metrics,
-    ctl::deployer::{DeployId, DeployReq, DeployRes, RevisionId},
-};
-use uuid::Uuid;
-
 use crate::discovery::DiscoveryHandle;
+use axum::{extract::State, Json};
+use proto::ctl::deployer::{DeployId, DeployReq, DeployRes, RevisionId};
 
 pub async fn deploy(
     State(discovery_handle): State<DiscoveryHandle>,
     Json(payload): Json<DeployReq>,
 ) -> Json<DeployRes> {
-    println!("{payload:#?}");
-
     let revision_id = RevisionId::now_v7();
 
-    discovery_handle.schedule_deploy(revision_id);
+    let mut deploys_id: Vec<DeployId> = Vec::new();
+    for _i in 0..payload.service_spec.concurrency {
+        deploys_id.push(discovery_handle.schedule_deploy(revision_id).await);
+    }
+
+    tokio::spawn(async move {
+        let _workers = discovery_handle.query_worker().await;
+        // TODO: Select worker
+        // TODO: Start deployment on runner
+    });
 
     Json(DeployRes {
         revision_id,
-        deploy_ids: Vec::from([DeployId::now_v7()]),
+        deploy_ids: deploys_id,
     })
 }

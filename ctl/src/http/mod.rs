@@ -1,17 +1,17 @@
-use axum::{routing::post, routing::get, Router};
+use axum::{routing::post, Router};
 use tracing::info;
 
-use crate::discovery::{Discovery, DiscoveryHandle};
+use crate::discovery::DiscoveryHandle;
 
 pub mod deployer;
 pub mod worker;
 
-pub async fn run_server(discovery: DiscoveryHandle) {
+pub async fn run_server(discovery_handle: DiscoveryHandle) {
     let app = Router::new()
         .route("/worker/metrics", post(worker::push_metrics))
         .route(
             "/deploy",
-            post(deployer::deploy).with_state(discovery),
+            post(deployer::deploy).with_state(discovery_handle),
         );
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
