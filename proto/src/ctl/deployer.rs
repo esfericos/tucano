@@ -26,7 +26,6 @@ pub enum DeployStatus {
 /// Starts a new deploy in the system.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeployReq {
-    pub revision_id: RevisionId,
     pub service_spec: ServiceSpec,
 }
 
