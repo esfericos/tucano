@@ -1,6 +1,6 @@
 use tracing::info;
 
-use crate::discovery::Discovery;
+use crate::{discovery::Discovery, http::HttpState};
 
 mod discovery;
 mod http;
@@ -8,7 +8,6 @@ mod http;
 #[tokio::main]
 async fn main() {
     setup::tracing();
-
     info!("started controller");
 
     let (discovery, discovery_handle) = Discovery::new();
@@ -18,10 +17,11 @@ async fn main() {
     });
 
     let http_handle = tokio::spawn({
-        let discovery_handle = discovery_handle.clone();
-
+        let state = HttpState {
+            discovery: discovery_handle.clone(),
+        };
         async move {
-            http::run_server(discovery_handle).await;
+            http::run_server(state).await;
         }
     });
 
