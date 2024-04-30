@@ -4,7 +4,7 @@ mod ctl;
 mod worker;
 
 #[derive(Debug, Parser)]
-struct Cli {
+pub struct Cli {
     #[command(subcommand)]
     cmd: Cmd,
 }
@@ -17,11 +17,13 @@ enum Cmd {
 
 #[derive(Args, Debug)]
 struct Ctl {
+    #[command(subcommand)]
     cmd: ctl::Cmd,
 }
 
 #[derive(Args, Debug)]
 struct Worker {
+    #[command(subcommand)]
     cmd: worker::Cmd,
 }
 
