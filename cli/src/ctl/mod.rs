@@ -9,7 +9,7 @@ pub enum Cmd {
     #[command(arg_required_else_help = true)]
     Service(ServiceArgs),
     #[command(arg_required_else_help = true)]
-    Deploy(DeployArgs),
+    Deploy(Deploy),
 }
 
 #[derive(Args, Debug)]
@@ -32,9 +32,22 @@ pub struct ServiceArgs {
 
 #[derive(Args, Debug)]
 #[group(required = true, multiple = false)]
-pub struct DeployArgs {
-    #[arg(short, long)]
-    list: bool,
-    #[arg(short, long)]
-    show: String,
+pub struct Deploy {
+    #[command(subcommand)]
+    cmd: DeployCmd,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum DeployCmd {
+    List,
+    Show { node: String },
+    New { args: String },
+}
+
+pub fn handle_deploy(deploy: Deploy) {
+    match deploy.cmd {
+        DeployCmd::List => todo!(),
+        DeployCmd::Show { node } => todo!(),
+        DeployCmd::New { args } => todo!(),
+    }
 }

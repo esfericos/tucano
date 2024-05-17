@@ -1,4 +1,5 @@
 use clap::{Args, Parser, Subcommand};
+use ctl::handle_deploy;
 
 mod ctl;
 mod worker;
@@ -27,4 +28,19 @@ struct Worker {
     cmd: worker::Cmd,
 }
 
-fn main() {}
+fn main() {
+    let cli = Cli::parse();
+
+    match cli.cmd {
+        Cmd::Ctl(ctl) => handle_ctl(ctl),
+        Cmd::Worker(_) => todo!(),
+    }
+}
+
+fn handle_ctl(ctl: Ctl) {
+    match ctl.cmd {
+        ctl::Cmd::Node(_) => todo!(),
+        ctl::Cmd::Service(_) => todo!(),
+        ctl::Cmd::Deploy(deploy) => handle_deploy(deploy),
+    }
+}
