@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+use std::{net::SocketAddr, path::PathBuf};
 
 use clap::{Args, Subcommand};
 
@@ -41,13 +41,17 @@ pub struct Deploy {
 pub enum DeployCmd {
     List,
     Show { node: String },
-    New { args: String },
+    New { path: PathBuf, tag: String },
 }
 
 pub fn handle_deploy(deploy: Deploy) {
     match deploy.cmd {
         DeployCmd::List => todo!(),
         DeployCmd::Show { node } => todo!(),
-        DeployCmd::New { args } => todo!(),
+
+        /// The `new` subcommand requires the following @params:
+        /// path: PathBuf to the directory containing the Dockerfile for the image
+        /// tag: String for image's name
+        DeployCmd::New { path, tag } => todo!(),
     }
 }
