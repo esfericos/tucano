@@ -4,7 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::common::service::{ServiceName, ServiceSpec};
+use crate::common::service::ServiceSpec;
 
 /// Starts a **single** deploy of the given service spec.
 ///
@@ -24,7 +24,7 @@ pub struct DeployRes {
 /// Stops a given service from running in the system.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StopReq {
-    pub service_name: ServiceName,
+    pub service_name: String,
     /// Whether to completely remove the service from the node, calling the
     /// teardown script, if any.
     pub remove: bool,

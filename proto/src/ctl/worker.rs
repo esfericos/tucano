@@ -3,10 +3,7 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::common::{
-    node::{Metrics, NodeName},
-    service::ServiceName,
-};
+use crate::common::node::{Metrics, NodeName};
 
 /// Pushes new metrics of a given **worker** node.
 ///
@@ -20,7 +17,7 @@ pub struct PushWorkerMetricsReq {
     pub node_name: NodeName,
     pub metrics: Metrics,
     /// The number of services that are being executed on the node.
-    pub services: HashMap<ServiceName, u32 /* todo: more info? */>,
+    pub services: HashMap<String, u32 /* todo: more info? */>,
     pub recorded_at: DateTime<Utc>,
 }
 
