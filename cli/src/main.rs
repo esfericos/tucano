@@ -1,8 +1,6 @@
-use clap::{Args, Parser, Subcommand};
-use ctl::handle_deploy;
+use std::net::SocketAddr;
 
-mod ctl;
-mod worker;
+use clap::{Parser, Subcommand};
 
 #[derive(Debug, Parser)]
 pub struct Cli {
@@ -11,36 +9,58 @@ pub struct Cli {
 }
 
 #[derive(Debug, Subcommand)]
-enum Cmd {
-    Ctl(Ctl),
-    Worker(Worker),
+pub enum Cmd {
+    #[clap(subcommand)]
+    Node(NodeCmd),
+    #[clap(subcommand)]
+    Service(ServiceCmd),
 }
 
-#[derive(Args, Debug)]
-struct Ctl {
-    #[command(subcommand)]
-    cmd: ctl::Cmd,
+#[derive(Debug, Subcommand)]
+pub enum NodeCmd {
+    List,
+    Show {
+        address: SocketAddr,
+    },
+    #[clap(subcommand)]
+    Worker(WorkerCmd),
 }
 
-#[derive(Args, Debug)]
-struct Worker {
-    #[command(subcommand)]
-    cmd: worker::Cmd,
+#[derive(Debug, Subcommand)]
+pub enum WorkerCmd {
+    Remove { address: SocketAddr },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum ServiceCmd {
+    List,
+    Show { id: String },
+    Deploy { id: String, image: String },
+    Terminate { id: String },
 }
 
 fn main() {
     let cli = Cli::parse();
 
     match cli.cmd {
-        Cmd::Ctl(ctl) => handle_ctl(ctl),
-        Cmd::Worker(_) => todo!(),
+        Cmd::Node(cmd) => handle_node(&cmd),
+        Cmd::Service(cmd) => handle_service(&cmd),
     }
 }
 
-fn handle_ctl(ctl: Ctl) {
-    match ctl.cmd {
-        ctl::Cmd::Node(_) => todo!(),
-        ctl::Cmd::Service(_) => todo!(),
-        ctl::Cmd::Deploy(deploy) => handle_deploy(deploy),
+fn handle_node(cmd: &NodeCmd) {
+    match cmd {
+        NodeCmd::List => todo!(),
+        NodeCmd::Show { .. } => todo!(),
+        NodeCmd::Worker(_) => todo!(),
+    }
+}
+
+fn handle_service(cmd: &ServiceCmd) {
+    match cmd {
+        ServiceCmd::List => todo!(),
+        ServiceCmd::Show { .. } => todo!(),
+        ServiceCmd::Deploy { .. } => todo!(),
+        ServiceCmd::Terminate { .. } => todo!(),
     }
 }
