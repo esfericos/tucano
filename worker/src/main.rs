@@ -7,6 +7,7 @@ use crate::{args::WorkerArgs, monitor::pusher};
 
 mod args;
 mod monitor;
+mod runner;
 
 #[tokio::main]
 async fn main() -> Result<()> {

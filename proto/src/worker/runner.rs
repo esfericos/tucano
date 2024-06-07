@@ -3,28 +3,28 @@
 //! service on a given worker node.
 
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-use crate::common::service::{ServiceName, ServiceSpec};
+/// Specification of a service's instance
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InstanceSpec {
+    id: Uuid,
+    image: String,
+}
 
 /// Starts a **single** deploy of the given service spec.
 ///
 /// The worker server doesn't follow the concurrency limit for the service as
-/// defined in [`ServiceSpec`].
+/// defined in [`InstanceSpec`].
 #[derive(Debug, Serialize, Deserialize)]
-pub struct DeployReq {
-    pub service_spec: ServiceSpec,
+pub struct DeployInstanceReq {
+    pub instances: Vec<InstanceSpec>,
 }
 
-/// Response for [`DeployReq`].
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DeployRes {
-    // ???
-}
-
-/// Stops a given service from running in the system.
+/// Stops a given instance from running in the system.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StopReq {
-    pub service_name: ServiceName,
+    pub instance: InstanceSpec,
     /// Whether to completely remove the service from the node, calling the
     /// teardown script, if any.
     pub remove: bool,
