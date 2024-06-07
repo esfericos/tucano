@@ -40,7 +40,6 @@
               text = ''cargo fmt "$@"'';
             })
             cargo-nextest
-            cargo-llvm-cov
 
             gnumake
 

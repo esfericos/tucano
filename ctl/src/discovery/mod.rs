@@ -6,6 +6,7 @@ use proto::{
 };
 use tokio::sync::{mpsc, oneshot};
 use tracing::{debug, instrument};
+use uuid::Uuid;
 
 pub struct Discovery {
     rx: mpsc::Receiver<Msg>,
@@ -55,7 +56,7 @@ impl Discovery {
                 _ = reply.send(entries);
             }
             Msg::DeploySchedule(revision_id, reply) => {
-                let deploy_id = DeployId::now_v7();
+                let deploy_id = DeployId(Uuid::now_v7());
                 assert!(!self.deploys.contains_key(&deploy_id));
                 self.deploys.insert(
                     deploy_id,
