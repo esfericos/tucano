@@ -1,18 +1,23 @@
 use std::{collections::HashMap, net::SocketAddr};
 
+use chrono::{DateTime, Utc};
 use proto::{
-    common::node::Metrics,
-    ctl::deployer::{DeployId, DeployStatus, RevisionId},
+    common::{instance::InstanceId, node::Metrics, service::ServiceId},
+    ctl::deployer::DeploymentId,
 };
 use tokio::sync::{mpsc, oneshot};
-use tracing::{debug, instrument};
-use uuid::Uuid;
+use tracing::instrument;
 
 pub struct Discovery {
     rx: mpsc::Receiver<Msg>,
     // TODO: Add more information on workers
     workers: HashMap<SocketAddr, Metrics>,
-    deploys: HashMap<DeployId, DeployDetails>,
+    #[allow(dead_code)]
+    services: HashMap<ServiceId, ServiceInfo>,
+    #[allow(dead_code)]
+    instances: HashMap<InstanceId, InstanceInfo>,
+    #[allow(dead_code)]
+    deployments: HashMap<DeploymentId, DeploymentInfo>,
 }
 
 impl Discovery {
@@ -22,7 +27,9 @@ impl Discovery {
         let actor = Discovery {
             rx,
             workers: HashMap::default(),
-            deploys: HashMap::default(),
+            services: HashMap::default(),
+            instances: HashMap::default(),
+            deployments: HashMap::default(),
         };
         let handle = DiscoveryHandle(tx);
         (actor, handle)
@@ -55,25 +62,6 @@ impl Discovery {
                     .collect();
                 _ = reply.send(entries);
             }
-            Msg::DeploySchedule(revision_id, reply) => {
-                let deploy_id = DeployId(Uuid::now_v7());
-                assert!(!self.deploys.contains_key(&deploy_id));
-                self.deploys.insert(
-                    deploy_id,
-                    DeployDetails {
-                        revision_id,
-                        status: WorkerDeployStatus::Scheduled,
-                    },
-                );
-                _ = reply.send(deploy_id);
-            }
-            Msg::DeployPushStatus(deploy_id, worker_addr, status) => {
-                let Some(details) = self.deploys.get_mut(&deploy_id) else {
-                    debug!(?deploy_id, "queried for unavailable deploy");
-                    return;
-                };
-                details.status = WorkerDeployStatus::Deployed(worker_addr, status);
-            }
         }
     }
 }
@@ -102,48 +90,48 @@ impl DiscoveryHandle {
         self.send(Msg::WorkerQuery(tx)).await;
         rx.await.expect("actor must be alive")
     }
-
-    #[allow(dead_code)] // TODO: Remove
-    pub async fn schedule_deploy(&self, revision_id: RevisionId) -> DeployId {
-        let (tx, rx) = oneshot::channel();
-        self.send(Msg::DeploySchedule(revision_id, tx)).await;
-        rx.await.expect("actor must be alive")
-    }
-
-    #[allow(dead_code)] // TODO: Remove
-    pub async fn push_deploy_status(
-        &self,
-        deploy_id: DeployId,
-        worker_addr: SocketAddr,
-        status: DeployStatus,
-    ) {
-        self.send(Msg::DeployPushStatus(deploy_id, worker_addr, status))
-            .await;
-    }
 }
 
 #[derive(Debug)]
+#[allow(clippy::enum_variant_names)] // remove this once more variants are added
 enum Msg {
     WorkerAdd(SocketAddr, Metrics),
     WorkerDrop(SocketAddr),
     WorkerQuery(oneshot::Sender<Vec<WorkerDetails>>),
-
-    DeploySchedule(RevisionId, oneshot::Sender<DeployId>),
-    DeployPushStatus(DeployId, SocketAddr, DeployStatus),
+    // TODO: add service and instance operations
 }
 
-#[derive(Debug)]
-pub struct DeployDetails {
-    pub revision_id: RevisionId,
-    pub status: WorkerDeployStatus,
+// services: HashMap<ServiceId, ServiceInfo>,
+// instances: HashMap<InstanceId, InstanceInfo>,
+
+#[derive(Default)]
+pub struct ServiceInfo {
+    pub instances: Vec<InstanceId>,
 }
 
-#[derive(Debug)]
-pub enum WorkerDeployStatus {
-    /// Deployment is scheduled (not yet in progress).
-    Scheduled,
-    /// Service is being deployed or running at a given node.
-    Deployed(SocketAddr, DeployStatus),
+#[derive(Default)]
+pub struct InstanceInfo {
+    pub state: InstanceState,
+    pub deployment_id: DeploymentId,
+}
+
+#[derive(Copy, Clone, Default, Debug)]
+pub enum InstanceState {
+    #[default]
+    Idle,
+    #[allow(dead_code)]
+    Running,
+    #[allow(dead_code)]
+    Terminated,
+    #[allow(dead_code)]
+    Crashed,
+    #[allow(dead_code)]
+    Killed,
+}
+
+#[derive(Default)]
+pub struct DeploymentInfo {
+    pub deployed_at: DateTime<Utc>,
 }
 
 #[derive(Debug)]

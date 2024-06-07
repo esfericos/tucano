@@ -1,41 +1,19 @@
 //! Very similar to [`crate::ctl::deployer`], but while the former coordinates a
-//! **system deploy**, this module is concerned with the actual deployment of a
-//! service on a given worker node.
+//! **service deploy**, this module is concerned with the actual deployment of
+//! an instance on a given worker node.
 
 use serde::{Deserialize, Serialize};
 
-use crate::common::service::ServiceSpec;
+use crate::common::instance::{InstanceId, InstanceSpec};
 
-/// Starts a **single** deploy of the given service spec.
-///
-/// The worker server doesn't follow the concurrency limit for the service as
-/// defined in [`ServiceSpec`].
+/// Starts a new deploy in the system.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeployReq {
-    pub service_spec: ServiceSpec,
-}
-
-/// Response for [`DeployReq`].
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DeployRes {
-    // ???
+    pub instance_spec: InstanceSpec,
 }
 
 /// Stops a given service from running in the system.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct StopReq {
-    pub service_name: String,
-    /// Whether to completely remove the service from the node, calling the
-    /// teardown script, if any.
-    pub remove: bool,
-}
-
-/// Response for [`StopReq`].
-#[derive(Debug, Serialize, Deserialize)]
-pub struct StopRes {
-    /// Whether the service was removed.
-    ///
-    /// Only returns `true` if the service has a teardown script and it was
-    /// successfully executed.
-    pub removed: bool,
+pub struct TerminateReq {
+    pub instance_id: InstanceId,
 }

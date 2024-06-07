@@ -1,27 +1,18 @@
+use std::{collections::HashMap, net::SocketAddr};
+
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::common::service::ServiceSpec;
+use crate::common::{
+    instance::InstanceId,
+    service::{ServiceId, ServiceSpec},
+};
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
 pub struct RevisionId(pub Uuid);
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
-pub struct DeployId(pub Uuid);
-
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
-pub enum DeployStatus {
-    /// The deployment process is in progress (e.g. running the build script).
-    InProgress,
-    /// The deployment is finished and the service is running.
-    Running,
-    /// The service has gracefully stopped.
-    Stopped,
-    /// The service build script has failed.
-    BuildFailed,
-    /// The service has abruptly crashed.
-    Crashed,
-}
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
+pub struct DeploymentId(pub Uuid);
 
 /// Starts a new deploy in the system.
 #[derive(Debug, Serialize, Deserialize)]
@@ -32,25 +23,33 @@ pub struct DeployReq {
 /// Response for [`DeployReq`].
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeployRes {
-    pub revision_id: RevisionId,
-    pub deploy_ids: Vec<DeployId>,
+    pub deployment_id: DeploymentId,
+    pub instances_mapping: HashMap<InstanceId, SocketAddr>,
 }
 
 /// Stops a given service from running in the system.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct StopReq {
-    pub service_name: String,
-    /// Whether to completely remove the service from the system, calling the
-    /// teardown script, if any.
-    pub remove: bool,
+pub struct TerminateReq {
+    pub service_id: ServiceId,
 }
 
-/// Response for [`StopReq`].
+/// Response for [`TerminateReq`].
 #[derive(Debug, Serialize, Deserialize)]
-pub struct StopRes {
-    /// Whether the service was removed.
-    ///
-    /// Only returns `true` if the service has a teardown script and it was
-    /// successfully executed.
-    pub removed: bool,
+pub struct TerminateRes {}
+
+pub struct ReportDeployInstanceStatusReq {}
+
+pub enum Status {
+    /// The instance has successfully started.
+    Started(InstanceId),
+    /// The instance failed to start.
+    FailedToStart(InstanceId, /* error */ String),
+    /// The instance has gracefully terminated.
+    Terminated(InstanceId),
+    /// The instance stopped due to an abrupt error.
+    Crashed(InstanceId, /* error */ String),
+    /// The instance was killed by the System due to an error.
+    Killed(InstanceId, /* reason */ String),
 }
+
+pub struct ReportDeployInstanceStatusRes {}
