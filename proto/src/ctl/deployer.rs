@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::common::service::{ServiceName, ServiceSpec};
+use crate::common::service::ServiceSpec;
 
-bty::brand!(
-    pub type RevisionId = Uuid;
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub struct RevisionId(pub Uuid);
 
-    pub type DeployId = Uuid;
-);
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub struct DeployId(pub Uuid);
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum DeployStatus {
@@ -39,7 +39,7 @@ pub struct DeployRes {
 /// Stops a given service from running in the system.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StopReq {
-    pub service_name: ServiceName,
+    pub service_name: String,
     /// Whether to completely remove the service from the system, calling the
     /// teardown script, if any.
     pub remove: bool,

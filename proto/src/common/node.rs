@@ -2,13 +2,8 @@ use std::net::SocketAddr;
 
 use serde::{Deserialize, Serialize};
 
-bty::brand!(
-    pub type NodeName = String;
-);
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Node {
-    pub name: NodeName,
     pub addr: SocketAddr,
     pub kind: NodeKind,
 }
