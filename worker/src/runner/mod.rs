@@ -72,7 +72,7 @@ pub struct RunnerHandle(mpsc::Sender<Msg>);
 
 impl RunnerHandle {
     #[allow(dead_code)]
-    pub async fn send(&self, msg: Msg) {
+    async fn send(&self, msg: Msg) {
         _ = self.0.send(msg).await;
     }
 
