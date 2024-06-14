@@ -3,8 +3,26 @@
 //! an instance on a given worker node.
 
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::common::instance::{InstanceId, InstanceSpec};
+
+///
+
+/// Starts a new deploy in the system
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeployInstanceReq {
+    pub id: DeoployReqId,
+    pub instance_spec: InstanceSpec,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeployInstanceRes {
+    pub id: DeoployReqId,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeoployReqId(Uuid);
 
 /// Starts a new deploy in the system.
 #[derive(Debug, Serialize, Deserialize)]

@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::common::service::ServiceImage;
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct InstanceId(Uuid);
 
 #[derive(Debug, Serialize, Deserialize)]

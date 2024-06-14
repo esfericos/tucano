@@ -1712,6 +1712,7 @@ dependencies = [
 name = "worker"
 version = "0.1.0"
 dependencies = [
+ "axum",
  "clap",
  "eyre",
  "proto",
@@ -1720,4 +1721,5 @@ dependencies = [
  "sysinfo",
  "tokio",
  "tracing",
+ "uuid",
 ]
