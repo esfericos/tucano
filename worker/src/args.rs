@@ -5,6 +5,7 @@ use clap::{value_parser, Parser};
 #[derive(Debug)]
 pub struct WorkerArgs {
     /// Controller's address.
+    #[allow(dead_code)]
     pub controller_addr: SocketAddr,
 
     /// Interval at which metrics are pushed to the controller.

@@ -7,12 +7,15 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
+# Internal deps
 setup.workspace = true
 proto.workspace = true
-
+# External deps (keep alphabetically sorted)
+axum.workspace = true
 clap.workspace = true
 eyre.workspace = true
 reqwest.workspace = true
 sysinfo.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+uuid.workspace = true

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::{collections::HashMap, net::SocketAddr};
 
 use chrono::{DateTime, Utc};
@@ -12,11 +14,8 @@ pub struct Discovery {
     rx: mpsc::Receiver<Msg>,
     // TODO: Add more information on workers
     workers: HashMap<SocketAddr, Metrics>,
-    #[allow(dead_code)]
     services: HashMap<ServiceId, ServiceInfo>,
-    #[allow(dead_code)]
     instances: HashMap<InstanceId, InstanceInfo>,
-    #[allow(dead_code)]
     deployments: HashMap<DeploymentId, DeploymentInfo>,
 }
 
