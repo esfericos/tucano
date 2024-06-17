@@ -24,4 +24,6 @@ pub enum Status {
     Crashed { error: String },
     /// The instance was killed by the System due to an error.
     Killed { reason: String },
+    /// The instance failed during attempted execution.
+    FailedToStart { error: String },
 }

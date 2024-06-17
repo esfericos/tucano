@@ -1,7 +1,11 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
+use bollard::Docker;
 use eyre::{Context as _, Ok, Report};
-use proto::common::instance::{InstanceId, InstanceSpec};
+use proto::common::instance::{self, InstanceId, InstanceSpec};
 use tokio::{
     net::TcpListener,
     sync::{mpsc, oneshot},
@@ -21,7 +25,7 @@ pub struct Runner {
 
 impl Runner {
     #[must_use]
-    pub fn new() -> (Runner, RunnerHandle) {
+    pub fn new(docker: Arc<Docker>) -> (Runner, RunnerHandle) {
         let (tx, rx) = mpsc::channel(16);
         let handle = RunnerHandle(tx);
         let actor = Runner {
@@ -29,7 +33,7 @@ impl Runner {
             instances: HashMap::default(),
             ports: HashSet::default(),
             handle: handle.clone(),
-            container_runtime: ContainerRuntime::new(),
+            container_runtime: ContainerRuntime::new(docker),
         };
         (actor, handle)
     }
@@ -42,20 +46,20 @@ impl Runner {
 
     async fn handle_msg(&mut self, msg: Msg) {
         match msg {
-            Msg::InstanceDeploy(spec, reply) => {
+            Msg::DeployInstance(spec, reply) => {
                 let res = self.instance_deploy(spec).await;
                 _ = reply.send(res);
             }
-            Msg::InstanceTerminate(_id, _reply) => todo!(),
-            Msg::InstanceKill(_id, _report) => todo!(),
+            Msg::TerminateInstance(_id, _reply) => todo!(),
+            Msg::KillInstance(_id, _report) => todo!(),
+            Msg::ReportInstanceStatus(_) => todo!(),
         }
     }
 
     async fn instance_deploy(&mut self, spec: InstanceSpec) -> eyre::Result<()> {
         let port = self.get_port_for_instance(spec.instance_id).await?;
         self.container_runtime
-            .spawn_instance(spec, port, self.handle.clone())
-            .await;
+            .spawn_instance(spec, port, self.handle.clone());
         Ok(())
     }
 
@@ -81,20 +85,42 @@ impl RunnerHandle {
         _ = self.0.send(msg).await;
     }
 
+    /// Sends a message and waits for a reply.
+    async fn send_wait<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(oneshot::Sender<R>) -> Msg,
+    {
+        let (tx, rx) = oneshot::channel();
+        self.send(f(tx)).await;
+        rx.await.expect("actor must be alive")
+    }
+
     #[allow(dead_code)]
     pub async fn deploy_instance(&self, spec: InstanceSpec) -> Result<(), Report> {
-        let (tx, rx) = oneshot::channel();
-        self.send(Msg::InstanceDeploy(spec, tx)).await;
-        rx.await.unwrap()
+        self.send_wait(|tx| Msg::DeployInstance(spec, tx)).await
+    }
+
+    #[allow(dead_code)]
+    pub async fn terminate_instance(&self, id: InstanceId) -> Result<(), Report> {
+        self.send_wait(|tx| Msg::TerminateInstance(id, tx)).await
+    }
+
+    #[allow(dead_code)]
+    pub async fn kill_instance(&self, id: InstanceId) -> Result<(), Report> {
+        self.send_wait(|tx| Msg::KillInstance(id, tx)).await
+    }
+
+    pub async fn report_instance_status(&self, status: instance::Status) {
+        self.send(Msg::ReportInstanceStatus(status)).await;
     }
 }
 
-#[allow(clippy::enum_variant_names)] // remove this once more variants are added
 #[allow(dead_code)]
 pub enum Msg {
-    InstanceDeploy(InstanceSpec, oneshot::Sender<Result<(), Report>>),
-    InstanceTerminate(InstanceId, oneshot::Sender<Result<(), Report>>),
-    InstanceKill(InstanceId, oneshot::Sender<Result<(), Report>>),
+    DeployInstance(InstanceSpec, oneshot::Sender<Result<(), Report>>),
+    TerminateInstance(InstanceId, oneshot::Sender<Result<(), Report>>),
+    KillInstance(InstanceId, oneshot::Sender<Result<(), Report>>),
+    ReportInstanceStatus(instance::Status),
 }
 
 async fn get_port() -> eyre::Result<u16> {

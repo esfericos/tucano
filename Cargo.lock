@@ -1970,6 +1970,7 @@ dependencies = [
  "bollard",
  "clap",
  "eyre",
+ "futures-util",
  "proto",
  "reqwest",
  "setup",

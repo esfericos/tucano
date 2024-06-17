@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use bollard::Docker;
 use eyre::Result;
 use http::HttpState;
 use runner::Runner;
@@ -26,7 +27,8 @@ async fn main() -> Result<()> {
         }
     });
 
-    let (runner, runner_handle) = Runner::new();
+    let docker = Arc::new(Docker::connect_with_http_defaults().unwrap());
+    let (runner, runner_handle) = Runner::new(docker);
     let runner_actor_handle = tokio::spawn(async move {
         runner.run().await;
     });
