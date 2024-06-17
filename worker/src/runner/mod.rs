@@ -9,12 +9,14 @@ use tokio::{
 };
 
 mod container_rt;
+use container_rt::ContainerRuntime;
 
 pub struct Runner {
     rx: mpsc::Receiver<Msg>,
     instances: HashMap<InstanceId, u16>,
     ports: HashSet<u16>,
     handle: RunnerHandle,
+    container_runtime: ContainerRuntime,
 }
 
 impl Runner {
@@ -27,6 +29,7 @@ impl Runner {
             instances: HashMap::default(),
             ports: HashSet::default(),
             handle: handle.clone(),
+            container_runtime: ContainerRuntime::new(),
         };
         (actor, handle)
     }
@@ -50,7 +53,9 @@ impl Runner {
 
     async fn instance_deploy(&mut self, spec: InstanceSpec) -> eyre::Result<()> {
         let port = self.get_port_for_instance(spec.instance_id).await?;
-        container_rt::spawn_instance(spec, port, self.handle.clone()).await;
+        self.container_runtime
+            .spawn_instance(spec, port, self.handle.clone())
+            .await;
         Ok(())
     }
 

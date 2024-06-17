@@ -16,12 +16,13 @@ mod runner;
 async fn main() -> Result<()> {
     setup::tracing();
 
-    let args = WorkerArgs::parse();
+    let args = Arc::new(WorkerArgs::parse());
     info!(?args, "started worker");
 
     let pusher_handle = tokio::spawn({
+        let args = Arc::clone(&args);
         async move {
-            pusher::start_pusher(Arc::new(args)).await;
+            pusher::start_pusher(args).await;
         }
     });
 

@@ -14,6 +14,7 @@ setup.path = "crates/setup"
 worker.path = "worker"
 # External deps (keep alphabetically sorted)
 axum = "0.7"
+bollard = "0.16.1"
 clap = { version = "4.5", features = ["derive"] }
 chrono = { version = "0.4.38", default-features = false, features = [
     "std",
