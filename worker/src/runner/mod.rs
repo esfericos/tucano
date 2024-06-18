@@ -15,17 +15,20 @@ use tokio::{
 mod container_rt;
 use container_rt::ContainerRuntime;
 
+use super::sender;
+
 pub struct Runner {
     rx: mpsc::Receiver<Msg>,
     instances: HashMap<InstanceId, u16>,
     ports: HashSet<u16>,
     handle: RunnerHandle,
     container_runtime: ContainerRuntime,
+    http_sender: Arc<sender::Sender>,
 }
 
 impl Runner {
     #[must_use]
-    pub fn new(docker: Arc<Docker>) -> (Runner, RunnerHandle) {
+    pub fn new(docker: Arc<Docker>, sender: Arc<sender::Sender>) -> (Runner, RunnerHandle) {
         let (tx, rx) = mpsc::channel(16);
         let handle = RunnerHandle(tx);
         let actor = Runner {
@@ -34,6 +37,7 @@ impl Runner {
             ports: HashSet::default(),
             handle: handle.clone(),
             container_runtime: ContainerRuntime::new(docker),
+            http_sender: sender,
         };
         (actor, handle)
     }
@@ -47,19 +51,31 @@ impl Runner {
     async fn handle_msg(&mut self, msg: Msg) {
         match msg {
             Msg::DeployInstance(spec, reply) => {
-                let res = self.instance_deploy(spec).await;
+                let res = self.deploy_instance(spec).await;
                 _ = reply.send(res);
             }
-            Msg::TerminateInstance(_id, _reply) => todo!(),
+            Msg::TerminateInstance(id, reply) => {
+                let res = self.terminate_instance(id);
+                _ = reply.send(res);
+            }
             Msg::KillInstance(_id, _report) => todo!(),
-            Msg::ReportInstanceStatus(_) => todo!(),
+            Msg::ReportInstanceStatus(id, status) => {
+                let _ = self.http_sender.send_status(id, status).await;
+            }
         }
     }
 
-    async fn instance_deploy(&mut self, spec: InstanceSpec) -> eyre::Result<()> {
+    async fn deploy_instance(&mut self, spec: InstanceSpec) -> eyre::Result<()> {
         let port = self.get_port_for_instance(spec.instance_id).await?;
         self.container_runtime
             .spawn_instance(spec, port, self.handle.clone());
+        Ok(())
+    }
+
+    fn terminate_instance(&mut self, id: InstanceId) -> eyre::Result<()> {
+        self.container_runtime.terminate_instance(id);
+        let freed_port = self.instances.remove(&id).unwrap();
+        self.ports.remove(&freed_port);
         Ok(())
     }
 
@@ -110,8 +126,8 @@ impl RunnerHandle {
         self.send_wait(|tx| Msg::KillInstance(id, tx)).await
     }
 
-    pub async fn report_instance_status(&self, status: instance::Status) {
-        self.send(Msg::ReportInstanceStatus(status)).await;
+    pub async fn report_instance_status(&self, id: InstanceId, status: instance::Status) {
+        self.send(Msg::ReportInstanceStatus(id, status)).await;
     }
 }
 
@@ -120,7 +136,10 @@ pub enum Msg {
     DeployInstance(InstanceSpec, oneshot::Sender<Result<(), Report>>),
     TerminateInstance(InstanceId, oneshot::Sender<Result<(), Report>>),
     KillInstance(InstanceId, oneshot::Sender<Result<(), Report>>),
-    ReportInstanceStatus(instance::Status),
+
+    /// Sends a report to `ctl::http` component regarding current
+    /// instance status. Furthermore updating discovery
+    ReportInstanceStatus(InstanceId, instance::Status),
 }
 
 async fn get_port() -> eyre::Result<u16> {
