@@ -31,23 +31,27 @@ impl ContainerRuntime {
             {
                 let error = e.to_string();
                 handle
-                    .report_instance_status(Status::FailedToStart { error })
+                    .report_instance_status(spec.instance_id, Status::FailedToStart { error })
                     .await;
                 return;
             }
 
-            // healthcheck verifies if service is running on established `PORT`
-            handle.report_instance_status(Status::Started).await;
+            // TODO: Add health check to verify whether the service is running
+            handle
+                .report_instance_status(spec.instance_id, Status::Started)
+                .await;
 
             if let Err(e) = this.wait_container(&container_name).await {
                 let error = e.to_string();
                 handle
-                    .report_instance_status(Status::Crashed { error })
+                    .report_instance_status(spec.instance_id, Status::Crashed { error })
                     .await;
                 return;
             }
 
-            handle.report_instance_status(Status::Terminated).await;
+            handle
+                .report_instance_status(spec.instance_id, Status::Terminated)
+                .await;
         });
     }
 

@@ -12,6 +12,7 @@ mod args;
 mod http;
 mod monitor;
 mod runner;
+mod sender;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -20,15 +21,18 @@ async fn main() -> Result<()> {
     let args = Arc::new(WorkerArgs::parse());
     info!(?args, "started worker");
 
+    let sender = Arc::new(sender::Sender::new(args.controller_addr));
+
     let pusher_handle = tokio::spawn({
         let args = Arc::clone(&args);
+        let sender = Arc::clone(&sender);
         async move {
-            pusher::start_pusher(args).await;
+            pusher::start_pusher(args, sender).await;
         }
     });
 
     let docker = Arc::new(Docker::connect_with_http_defaults().unwrap());
-    let (runner, runner_handle) = Runner::new(docker);
+    let (runner, runner_handle) = Runner::new(docker, sender);
     let runner_actor_handle = tokio::spawn(async move {
         runner.run().await;
     });

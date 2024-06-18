@@ -1,23 +1,18 @@
 use std::sync::Arc;
 
-use reqwest;
 use tokio::time::sleep;
+use tracing::error;
 
-use crate::{args::WorkerArgs, monitor::collector::MetricsCollector};
+use crate::{args::WorkerArgs, monitor::collector::MetricsCollector, sender};
 
-pub async fn start_pusher(args: Arc<WorkerArgs>) {
+pub async fn start_pusher(args: Arc<WorkerArgs>, sender: Arc<sender::Sender>) {
     let mut metrics_report: MetricsCollector = MetricsCollector::new();
-
-    let client = reqwest::Client::new();
-
     loop {
         sleep(args.metrics_report_interval).await;
         let metrics = metrics_report.get_metrics();
-
-        let _ = client
-            .post("http://localhost:3000/worker/metrics")
-            .json(&metrics)
-            .send()
-            .await;
+        match sender.send_metrics(metrics).await {
+            Ok(()) => {}
+            Err(e) => error!("Failed to send metrics: {e}"),
+        };
     }
 }
