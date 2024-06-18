@@ -1,16 +1,12 @@
 use std::{collections::HashMap, sync::Arc};
 
 use bollard::{
-    container::{
-        Config, CreateContainerOptions, StartContainerOptions, StopContainerOptions,
-        WaitContainerOptions,
-    },
+    container::{Config, CreateContainerOptions, StartContainerOptions, WaitContainerOptions},
     secret::{ContainerCreateResponse, ContainerWaitExitError, ContainerWaitResponse, HostConfig},
     Docker,
 };
 use futures_util::stream::StreamExt;
-use proto::common::instance::{InstanceId, InstanceSpec, Status};
-use tracing::info;
+use proto::common::instance::{InstanceSpec, Status};
 
 use super::RunnerHandle;
 
@@ -40,7 +36,7 @@ impl ContainerRuntime {
                 return;
             }
 
-            // Healthcheck verifies if service is running on established `PORT`
+            // TODO: Add health check to verify whether the service is running
             handle
                 .report_instance_status(spec.instance_id, Status::Started)
                 .await;
@@ -56,24 +52,6 @@ impl ContainerRuntime {
             handle
                 .report_instance_status(spec.instance_id, Status::Terminated)
                 .await;
-        });
-    }
-
-    pub fn terminate_instance(&self, id: InstanceId) {
-        let this = self.clone();
-        tokio::spawn(async move {
-            let name = format!("instance-{id:?}");
-            loop {
-                match this.stop_container(&name).await {
-                    Ok(()) => {
-                        info!("Successfully stopped container!");
-                        break;
-                    }
-                    Err(e) => {
-                        info!("Failed to stop container: {:?}. Retrying...", e);
-                    }
-                }
-            }
         });
     }
 
@@ -139,13 +117,6 @@ impl ContainerRuntime {
             )),
             Err(e) => Err(e.into()),
         }
-    }
-
-    async fn stop_container(&self, name: &str) -> eyre::Result<()> {
-        Ok(self
-            .docker
-            .stop_container(name, None::<StopContainerOptions>)
-            .await?)
     }
 
     fn create_container_config(spec: InstanceSpec, port: u16) -> Config<String> {

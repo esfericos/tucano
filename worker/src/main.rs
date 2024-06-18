@@ -21,7 +21,7 @@ async fn main() -> Result<()> {
     let args = Arc::new(WorkerArgs::parse());
     info!(?args, "started worker");
 
-    let sender = sender::Sender::new(args.controller_addr);
+    let sender = Arc::new(sender::Sender::new(args.controller_addr));
 
     let pusher_handle = tokio::spawn({
         let args = Arc::clone(&args);

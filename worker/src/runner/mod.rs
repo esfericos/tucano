@@ -23,7 +23,7 @@ pub struct Runner {
     ports: HashSet<u16>,
     handle: RunnerHandle,
     container_runtime: ContainerRuntime,
-    http_sender: Arc<sender::Sender>,
+    ctl_sender: Arc<sender::Sender>,
 }
 
 impl Runner {
@@ -37,7 +37,7 @@ impl Runner {
             ports: HashSet::default(),
             handle: handle.clone(),
             container_runtime: ContainerRuntime::new(docker),
-            http_sender: sender,
+            ctl_sender: sender,
         };
         (actor, handle)
     }
@@ -54,13 +54,10 @@ impl Runner {
                 let res = self.deploy_instance(spec).await;
                 _ = reply.send(res);
             }
-            Msg::TerminateInstance(id, reply) => {
-                let res = self.terminate_instance(id);
-                _ = reply.send(res);
-            }
+            Msg::TerminateInstance(_id, _reply) => todo!(),
             Msg::KillInstance(_id, _report) => todo!(),
             Msg::ReportInstanceStatus(id, status) => {
-                let _ = self.http_sender.send_status(id, status).await;
+                let _ = self.ctl_sender.send_status(id, status).await;
             }
         }
     }
@@ -69,13 +66,6 @@ impl Runner {
         let port = self.get_port_for_instance(spec.instance_id).await?;
         self.container_runtime
             .spawn_instance(spec, port, self.handle.clone());
-        Ok(())
-    }
-
-    fn terminate_instance(&mut self, id: InstanceId) -> eyre::Result<()> {
-        self.container_runtime.terminate_instance(id);
-        let freed_port = self.instances.remove(&id).unwrap();
-        self.ports.remove(&freed_port);
         Ok(())
     }
 

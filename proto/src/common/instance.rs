@@ -1,3 +1,5 @@
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -5,6 +7,12 @@ use crate::common::service::{ResourceConfig, ServiceImage};
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct InstanceId(pub Uuid);
+
+impl fmt::Display for InstanceId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InstanceSpec {
