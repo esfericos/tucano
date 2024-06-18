@@ -60,6 +60,7 @@ impl ContainerRuntime {
         let create_response = self.create_container(spec, port, name.clone()).await?;
 
         self.run_container(create_response).await?;
+
         Ok(())
     }
 
@@ -77,7 +78,7 @@ impl ContainerRuntime {
         port: u16,
         name: String,
     ) -> eyre::Result<ContainerCreateResponse> {
-        let config = self.create_container_config(spec.clone(), port);
+        let config = Self::create_container_config(spec.clone(), port);
 
         let options = Some(CreateContainerOptions {
             name,
@@ -114,17 +115,17 @@ impl ContainerRuntime {
         }
     }
 
-    #[allow(clippy::unused_self)]
-    #[allow(clippy::zero_sized_map_values)]
-    fn create_container_config(&self, spec: InstanceSpec, port: u16) -> Config<String> {
+    fn create_container_config(spec: InstanceSpec, port: u16) -> Config<String> {
+        const HOST: &str = "0.0.0.0";
+
         Config {
             image: Some(spec.image.0),
-            exposed_ports: Some({
-                let mut map = HashMap::new();
-                map.insert(format!("{port}/tcp"), HashMap::default());
-                map
-            }),
-            env: Some(vec![format!("PORT={port}")]),
+            exposed_ports: Some(HashMap::from([(
+                format!("{port}/tcp"),
+                #[allow(clippy::zero_sized_map_values)]
+                HashMap::default(),
+            )])),
+            env: Some(vec![format!("PORT={port}"), format!("HOST={HOST}")]),
             host_config: Some(HostConfig {
                 cpu_shares: Some(spec.resource_config.cpu_shares),
                 memory: Some(spec.resource_config.memory_limit),
@@ -133,7 +134,7 @@ impl ContainerRuntime {
                     map.insert(
                         format!("{port}/tcp"),
                         Some(vec![bollard::models::PortBinding {
-                            host_ip: Some("0.0.0.0".to_string()),
+                            host_ip: Some(HOST.to_string()),
                             host_port: Some(port.to_string()),
                         }]),
                     );
