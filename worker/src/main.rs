@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use bollard::Docker;
 use eyre::Result;
 use http::HttpState;
 use runner::Runner;
@@ -16,16 +17,18 @@ mod runner;
 async fn main() -> Result<()> {
     setup::tracing();
 
-    let args = WorkerArgs::parse();
+    let args = Arc::new(WorkerArgs::parse());
     info!(?args, "started worker");
 
     let pusher_handle = tokio::spawn({
+        let args = Arc::clone(&args);
         async move {
-            pusher::start_pusher(Arc::new(args)).await;
+            pusher::start_pusher(args).await;
         }
     });
 
-    let (runner, runner_handle) = Runner::new();
+    let docker = Arc::new(Docker::connect_with_http_defaults().unwrap());
+    let (runner, runner_handle) = Runner::new(docker);
     let runner_actor_handle = tokio::spawn(async move {
         runner.run().await;
     });
