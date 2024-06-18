@@ -12,3 +12,15 @@ pub struct InstanceSpec {
     pub image: ServiceImage,
     pub public: bool,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Status {
+    /// The instance has successfully started.
+    Started,
+    /// The instance has gracefully terminated.
+    Terminated,
+    /// The instance stopped due to an abrupt error.
+    Crashed { error: String },
+    /// The instance was killed by the System due to an error.
+    Killed { reason: String },
+}

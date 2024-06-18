@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::common::{
-    instance::InstanceId,
+    instance::{self, InstanceId},
     service::{ServiceId, ServiceSpec},
 };
 
@@ -18,6 +18,16 @@ pub struct DeploymentId(pub Uuid);
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeployReq {
     pub service_spec: ServiceSpec,
+    pub redeployment_policy: RedeploymentPolicy,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum RedeploymentPolicy {
+    /// Disallow re-deployments if the service is already deployed with running
+    /// instances.
+    None,
+    // TODO: Add more (blue green, etc)
 }
 
 /// Response for [`DeployReq`].
@@ -37,19 +47,11 @@ pub struct TerminateReq {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TerminateRes {}
 
-pub struct ReportDeployInstanceStatusReq {}
-
-pub enum Status {
-    /// The instance has successfully started.
-    Started(InstanceId),
-    /// The instance failed to start.
-    FailedToStart(InstanceId, /* error */ String),
-    /// The instance has gracefully terminated.
-    Terminated(InstanceId),
-    /// The instance stopped due to an abrupt error.
-    Crashed(InstanceId, /* error */ String),
-    /// The instance was killed by the System due to an error.
-    Killed(InstanceId, /* reason */ String),
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ReportDeployInstanceStatusReq {
+    pub instance_id: InstanceId,
+    pub status: instance::Status,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ReportDeployInstanceStatusRes {}
