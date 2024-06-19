@@ -3,35 +3,23 @@
 //! an instance on a given worker node.
 
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::common::instance::{InstanceId, InstanceSpec};
-
-///
 
 /// Starts a new deploy in the system
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeployInstanceReq {
-    pub id: DeployReqId,
     pub instance_spec: InstanceSpec,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct DeployInstanceRes {
-    pub id: DeployReqId,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DeployReqId(Uuid);
-
-/// Starts a new deploy in the system.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DeployReq {
-    pub instance_spec: InstanceSpec,
-}
+pub struct DeployInstanceRes {}
 
 /// Stops a given service from running in the system.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TerminateReq {
     pub instance_id: InstanceId,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TerminateRes {}
