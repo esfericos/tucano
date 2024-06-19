@@ -1,16 +1,19 @@
 use std::sync::Arc;
 
+use axum::handler::Handler;
 use bollard::Docker;
 use eyre::Result;
 use http::HttpState;
+use proto::well_known;
 use runner::Runner;
 use tracing::info;
 
-use crate::{args::WorkerArgs, monitor::pusher};
+use crate::{args::WorkerArgs, monitor::pusher, proxy::ProxyState};
 
 mod args;
 mod http;
 mod monitor;
+mod proxy;
 mod runner;
 mod sender;
 
@@ -31,8 +34,23 @@ async fn main() -> Result<()> {
         }
     });
 
+    let (proxy_state, proxy_handle) = ProxyState::new();
+
+    let proxy_server = tokio::spawn(async {
+        let app = proxy::proxy.with_state(proxy_state);
+        let listener = tokio::net::TcpListener::bind(("0.0.0.0", well_known::WORKER_PROXY_PORT))
+            .await
+            .unwrap();
+
+        tracing::info!(
+            "Proxy server listening at port {}",
+            well_known::WORKER_PROXY_PORT
+        );
+        axum::serve(listener, app).await.unwrap();
+    });
+
     let docker = Arc::new(Docker::connect_with_defaults().unwrap());
-    let (runner, runner_handle) = Runner::new(docker, sender);
+    let (runner, runner_handle) = Runner::new(docker, sender, proxy_handle);
     let runner_actor_handle = tokio::spawn(async move {
         runner.run().await;
     });
@@ -46,6 +64,7 @@ async fn main() -> Result<()> {
         }
     });
 
+    proxy_server.await.unwrap();
     pusher_handle.await.unwrap();
     runner_actor_handle.await.unwrap();
     http_handle.await.unwrap();

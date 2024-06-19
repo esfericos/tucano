@@ -14,6 +14,14 @@ impl fmt::Display for InstanceId {
     }
 }
 
+impl TryFrom<&str> for InstanceId {
+    type Error = ();
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Ok(InstanceId(value.parse().map_err(|_| ())?))
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InstanceSpec {
     pub instance_id: InstanceId,
