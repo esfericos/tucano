@@ -14,6 +14,7 @@ use crate::{args::CtlArgs, balancer::BalancerState, http::HttpState, worker_mgr:
 
 mod args;
 mod balancer;
+mod deployer;
 mod http;
 mod worker_mgr;
 
