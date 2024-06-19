@@ -8,7 +8,6 @@ use super::Msg;
 pub struct RunnerHandle(pub mpsc::Sender<Msg>);
 
 impl RunnerHandle {
-    #[allow(dead_code)]
     async fn send(&self, msg: Msg) {
         _ = self.0.send(msg).await;
     }

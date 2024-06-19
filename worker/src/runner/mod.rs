@@ -61,15 +61,7 @@ impl Runner {
                 _ = reply.send(res);
             }
             Msg::ReportInstanceStatus(id, status) => {
-                use instance::Status::*;
-                match &status {
-                    Started => {}
-                    Terminated => self.remove_instance(id),
-                    Crashed { error: _ } | Killed { reason: _ } | FailedToStart { error: _ } => {
-                        self.remove_instance(id);
-                    }
-                }
-                let _ = self.ctl_sender.send_status(id, status).await;
+                self.report_instance_status(id, status);
             }
         }
     }
@@ -90,6 +82,22 @@ impl Runner {
             rt.terminate_instance(id).await;
         });
         Ok(())
+    }
+
+    fn report_instance_status(&mut self, id: InstanceId, status: instance::Status) {
+        use instance::Status::*;
+        match &status {
+            Started => (),
+            Terminated => self.remove_instance(id),
+            Crashed { error: _ } | Killed { reason: _ } | FailedToStart { error: _ } => {
+                self.remove_instance(id);
+            }
+        }
+
+        let s = self.ctl_sender.clone();
+        tokio::spawn(async move {
+            let _ = s.send_status(id, status).await;
+        });
     }
 
     async fn get_port_for_instance(&mut self, id: InstanceId) -> eyre::Result<u16> {

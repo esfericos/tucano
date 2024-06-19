@@ -34,7 +34,7 @@ impl ContainerRuntime {
         port: u16,
         handle: RunnerHandle,
     ) {
-        let container_name = Self::create_container_name(&spec.instance_id);
+        let container_name = Self::create_container_name(spec.instance_id);
 
         if let Err(e) = self
             .create_and_run(&spec, port, container_name.clone())
@@ -53,7 +53,7 @@ impl ContainerRuntime {
             .await;
 
         match self
-            .wait_container(&spec.instance_id)
+            .wait_container(spec.instance_id)
             .await
             .expect("infallible operation")
         {
@@ -73,12 +73,10 @@ impl ContainerRuntime {
 
     pub async fn terminate_instance(&self, id: InstanceId) {
         if let Err(e) = self.kill_container(id, "SIGTERM").await {
-            let error = e.to_string();
-            error!(error);
+            error!(%e, "error when killing instance (term)");
         }
 
-        let timeout_res =
-            tokio::time::timeout(GRACEFUL_SHUTDOWN_DEADLINE, self.wait_container(&id));
+        let timeout_res = tokio::time::timeout(GRACEFUL_SHUTDOWN_DEADLINE, self.wait_container(id));
 
         match timeout_res.await {
             // Container has been gracefully terminated.
@@ -86,8 +84,7 @@ impl ContainerRuntime {
             // Container failed to terminate within given deadline.
             Err(_) => {
                 if let Err(e) = self.kill_container(id, "SIGKILL").await {
-                    let error = e.to_string();
-                    error!(error);
+                    error!(%e, "error when killing instance (kill)");
                 }
             }
         }
@@ -131,7 +128,7 @@ impl ContainerRuntime {
         Ok(create_response)
     }
 
-    async fn wait_container(&self, id: &InstanceId) -> eyre::Result<ExitStatus> {
+    async fn wait_container(&self, id: InstanceId) -> eyre::Result<ExitStatus> {
         let ct_name = Self::create_container_name(id);
         let options = Some(WaitContainerOptions {
             condition: "not-running",
@@ -167,7 +164,7 @@ impl ContainerRuntime {
     }
 
     async fn kill_container(&self, id: InstanceId, signal: &str) -> eyre::Result<()> {
-        let ct_name = Self::create_container_name(&id);
+        let ct_name = Self::create_container_name(id);
         self.docker
             .kill_container(&ct_name, Some(KillContainerOptions { signal }))
             .await?;
@@ -206,7 +203,7 @@ impl ContainerRuntime {
         }
     }
 
-    fn create_container_name(id: &InstanceId) -> String {
+    fn create_container_name(id: InstanceId) -> String {
         format!("instance-{id}")
     }
 }
