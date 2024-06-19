@@ -38,9 +38,14 @@ async fn main() -> Result<()> {
 
     let proxy_server = tokio::spawn(async {
         let app = proxy::proxy.with_state(proxy_state);
-        let listener = tokio::net::TcpListener::bind(("127.0.0.1", well_known::WORKER_PROXY_PORT))
+        let listener = tokio::net::TcpListener::bind(("0.0.0.0", well_known::WORKER_PROXY_PORT))
             .await
             .unwrap();
+
+        tracing::info!(
+            "Proxy server listening at port {}",
+            well_known::WORKER_PROXY_PORT
+        );
         axum::serve(listener, app).await.unwrap();
     });
 
