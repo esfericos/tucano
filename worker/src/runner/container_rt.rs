@@ -1,12 +1,20 @@
 use std::{collections::HashMap, sync::Arc};
 
 use bollard::{
-    container::{Config, CreateContainerOptions, StartContainerOptions, WaitContainerOptions},
+    container::{
+        Config, CreateContainerOptions, KillContainerOptions, StartContainerOptions,
+        WaitContainerOptions,
+    },
+    errors::Error as BollardError,
     secret::{ContainerCreateResponse, ContainerWaitExitError, ContainerWaitResponse, HostConfig},
     Docker,
 };
 use futures_util::stream::StreamExt;
-use proto::common::instance::{InstanceSpec, Status};
+use proto::{
+    common::instance::{InstanceId, InstanceSpec, Status},
+    well_known::GRACEFUL_SHUTDOWN_DEADLINE,
+};
+use tracing::error;
 
 use super::RunnerHandle;
 
@@ -20,39 +28,69 @@ impl ContainerRuntime {
         ContainerRuntime { docker }
     }
 
-    pub fn spawn_instance(&self, spec: InstanceSpec, port: u16, handle: RunnerHandle) {
-        let this = self.clone();
-        tokio::spawn(async move {
-            let container_name = Self::create_container_name(&spec);
+    pub async fn run_instance_lifecycle(
+        &self,
+        spec: InstanceSpec,
+        port: u16,
+        handle: RunnerHandle,
+    ) {
+        let container_name = Self::create_container_name(&spec.instance_id);
 
-            if let Err(e) = this
-                .create_and_run(&spec, port, container_name.clone())
-                .await
-            {
-                let error = e.to_string();
-                handle
-                    .report_instance_status(spec.instance_id, Status::FailedToStart { error })
-                    .await;
-                return;
-            }
-
-            // TODO: Add health check to verify whether the service is running
+        if let Err(e) = self
+            .create_and_run(&spec, port, container_name.clone())
+            .await
+        {
+            let error = e.to_string();
             handle
-                .report_instance_status(spec.instance_id, Status::Started)
+                .report_instance_status(spec.instance_id, Status::FailedToStart { error })
                 .await;
+            return;
+        }
 
-            if let Err(e) = this.wait_container(&container_name).await {
-                let error = e.to_string();
+        // TODO: Add health check to verify whether the service is running
+        handle
+            .report_instance_status(spec.instance_id, Status::Started)
+            .await;
+
+        match self
+            .wait_container(&spec.instance_id)
+            .await
+            .expect("infallible operation")
+        {
+            ExitStatus::Terminated => {
+                handle
+                    .report_instance_status(spec.instance_id, Status::Terminated)
+                    .await;
+            }
+            ExitStatus::Crashed { status, error } => {
                 handle
                     .report_instance_status(spec.instance_id, Status::Crashed { error })
                     .await;
-                return;
+                error!(status, instance_id = %spec.instance_id, "Process exited");
             }
+        }
+    }
 
-            handle
-                .report_instance_status(spec.instance_id, Status::Terminated)
-                .await;
-        });
+    pub async fn terminate_instance(&self, id: InstanceId) {
+        if let Err(e) = self.kill_container(id, "SIGTERM").await {
+            let error = e.to_string();
+            error!(error);
+        }
+
+        let timeout_res =
+            tokio::time::timeout(GRACEFUL_SHUTDOWN_DEADLINE, self.wait_container(&id));
+
+        match timeout_res.await {
+            // Container has been gracefully terminated.
+            Ok(_) => (),
+            // Container failed to terminate within given deadline.
+            Err(_) => {
+                if let Err(e) = self.kill_container(id, "SIGKILL").await {
+                    let error = e.to_string();
+                    error!(error);
+                }
+            }
+        }
     }
 
     async fn create_and_run(
@@ -93,30 +131,47 @@ impl ContainerRuntime {
         Ok(create_response)
     }
 
-    async fn wait_container(&self, name: &str) -> eyre::Result<()> {
+    async fn wait_container(&self, id: &InstanceId) -> eyre::Result<ExitStatus> {
+        let ct_name = Self::create_container_name(id);
         let options = Some(WaitContainerOptions {
             condition: "not-running",
         });
-
-        let mut response_stream = self.docker.wait_container(name, options);
+        let mut response_stream = self.docker.wait_container(&ct_name, options);
         let Some(result) = response_stream.next().await else {
             eyre::bail!("wait_container didn't respond");
         };
 
         match result {
-            Ok(res) if res.status_code == 0 => Ok(()),
+            Ok(res) if res.status_code == 0 => Ok(ExitStatus::Terminated),
+            // Although this `Ok` variant is impossible as per the library's
+            // source code, the type signature still allows it, so we handle
+            // it here. The library maps the `Ok` with non-0 exit status code
+            // to the OR-ed `Err` case.
             Ok(ContainerWaitResponse {
-                status_code,
+                status_code: status,
                 error: Some(ContainerWaitExitError { message: Some(m) }),
-            }) => Err(eyre::eyre!("Container exited due to: {m} - {status_code}")),
+            })
+            | Err(BollardError::DockerContainerWaitError {
+                error: m,
+                code: status,
+            }) => Ok(ExitStatus::Crashed { status, error: m }),
             Ok(ContainerWaitResponse {
                 status_code,
                 error: _,
-            }) => Err(eyre::eyre!(
-                "Container exited due to unknown error - {status_code}"
-            )),
+            }) => Ok(ExitStatus::Crashed {
+                status: status_code,
+                error: "unknown".into(),
+            }),
             Err(e) => Err(e.into()),
         }
+    }
+
+    async fn kill_container(&self, id: InstanceId, signal: &str) -> eyre::Result<()> {
+        let ct_name = Self::create_container_name(&id);
+        self.docker
+            .kill_container(&ct_name, Some(KillContainerOptions { signal }))
+            .await?;
+        Ok(())
     }
 
     fn create_container_config(spec: InstanceSpec, port: u16) -> Config<String> {
@@ -131,6 +186,7 @@ impl ContainerRuntime {
             )])),
             env: Some(vec![format!("PORT={port}"), format!("HOST={HOST}")]),
             host_config: Some(HostConfig {
+                auto_remove: Some(true),
                 cpu_shares: Some(spec.resource_config.cpu_shares),
                 memory: Some(spec.resource_config.memory_limit),
                 port_bindings: Some({
@@ -150,7 +206,12 @@ impl ContainerRuntime {
         }
     }
 
-    fn create_container_name(spec: &InstanceSpec) -> String {
-        format!("instance-{}", spec.instance_id.0)
+    fn create_container_name(id: &InstanceId) -> String {
+        format!("instance-{id}")
     }
+}
+
+enum ExitStatus {
+    Terminated,
+    Crashed { status: i64, error: String },
 }

@@ -4,6 +4,7 @@ use std::{
 };
 
 use bollard::Docker;
+use container_rt::ContainerRuntime;
 use eyre::{Context as _, Ok, Report};
 use proto::common::instance::{self, InstanceId, InstanceSpec};
 use tokio::{
@@ -12,9 +13,10 @@ use tokio::{
     task,
 };
 
-mod container_rt;
-use container_rt::ContainerRuntime;
+mod handle;
+pub use handle::RunnerHandle;
 
+mod container_rt;
 use super::sender;
 
 pub struct Runner {
@@ -22,7 +24,7 @@ pub struct Runner {
     instances: HashMap<InstanceId, u16>,
     ports: HashSet<u16>,
     handle: RunnerHandle,
-    container_runtime: ContainerRuntime,
+    container_runtime: Arc<ContainerRuntime>,
     ctl_sender: Arc<sender::Sender>,
 }
 
@@ -36,7 +38,7 @@ impl Runner {
             instances: HashMap::default(),
             ports: HashSet::default(),
             handle: handle.clone(),
-            container_runtime: ContainerRuntime::new(docker),
+            container_runtime: Arc::new(ContainerRuntime::new(docker)),
             ctl_sender: sender,
         };
         (actor, handle)
@@ -54,9 +56,19 @@ impl Runner {
                 let res = self.deploy_instance(spec).await;
                 _ = reply.send(res);
             }
-            Msg::TerminateInstance(_id, _reply) => todo!(),
-            Msg::KillInstance(_id, _report) => todo!(),
+            Msg::TerminateInstance(id, reply) => {
+                let res = self.terminate_instance(id);
+                _ = reply.send(res);
+            }
             Msg::ReportInstanceStatus(id, status) => {
+                use instance::Status::*;
+                match &status {
+                    Started => {}
+                    Terminated => self.remove_instance(id),
+                    Crashed { error: _ } | Killed { reason: _ } | FailedToStart { error: _ } => {
+                        self.remove_instance(id);
+                    }
+                }
                 let _ = self.ctl_sender.send_status(id, status).await;
             }
         }
@@ -64,8 +76,19 @@ impl Runner {
 
     async fn deploy_instance(&mut self, spec: InstanceSpec) -> eyre::Result<()> {
         let port = self.get_port_for_instance(spec.instance_id).await?;
-        self.container_runtime
-            .spawn_instance(spec, port, self.handle.clone());
+        let rt = self.container_runtime.clone();
+        let handle = self.handle.clone();
+        tokio::spawn(async move {
+            rt.run_instance_lifecycle(spec, port, handle).await;
+        });
+        Ok(())
+    }
+
+    fn terminate_instance(&mut self, id: InstanceId) -> eyre::Result<()> {
+        let rt = self.container_runtime.clone();
+        tokio::spawn(async move {
+            rt.terminate_instance(id).await;
+        });
         Ok(())
     }
 
@@ -80,44 +103,10 @@ impl Runner {
         self.ports.insert(port);
         Ok(port)
     }
-}
 
-#[derive(Clone)]
-pub struct RunnerHandle(mpsc::Sender<Msg>);
-
-impl RunnerHandle {
-    #[allow(dead_code)]
-    async fn send(&self, msg: Msg) {
-        _ = self.0.send(msg).await;
-    }
-
-    /// Sends a message and waits for a reply.
-    async fn send_wait<F, R>(&self, f: F) -> R
-    where
-        F: FnOnce(oneshot::Sender<R>) -> Msg,
-    {
-        let (tx, rx) = oneshot::channel();
-        self.send(f(tx)).await;
-        rx.await.expect("actor must be alive")
-    }
-
-    #[allow(dead_code)]
-    pub async fn deploy_instance(&self, spec: InstanceSpec) -> Result<(), Report> {
-        self.send_wait(|tx| Msg::DeployInstance(spec, tx)).await
-    }
-
-    #[allow(dead_code)]
-    pub async fn terminate_instance(&self, id: InstanceId) -> Result<(), Report> {
-        self.send_wait(|tx| Msg::TerminateInstance(id, tx)).await
-    }
-
-    #[allow(dead_code)]
-    pub async fn kill_instance(&self, id: InstanceId) -> Result<(), Report> {
-        self.send_wait(|tx| Msg::KillInstance(id, tx)).await
-    }
-
-    pub async fn report_instance_status(&self, id: InstanceId, status: instance::Status) {
-        self.send(Msg::ReportInstanceStatus(id, status)).await;
+    fn remove_instance(&mut self, id: InstanceId) {
+        let freed_port = self.instances.remove(&id).unwrap();
+        self.ports.remove(&freed_port);
     }
 }
 
@@ -125,8 +114,6 @@ impl RunnerHandle {
 pub enum Msg {
     DeployInstance(InstanceSpec, oneshot::Sender<Result<(), Report>>),
     TerminateInstance(InstanceId, oneshot::Sender<Result<(), Report>>),
-    KillInstance(InstanceId, oneshot::Sender<Result<(), Report>>),
-
     /// Sends a report to `ctl::http` component regarding current
     /// instance status. Furthermore updating discovery
     ReportInstanceStatus(InstanceId, instance::Status),
