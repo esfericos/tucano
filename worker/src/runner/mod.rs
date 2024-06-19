@@ -13,24 +13,30 @@ use tokio::{
     task,
 };
 
-mod handle;
-pub use handle::RunnerHandle;
-
 mod container_rt;
 use super::sender;
+use crate::proxy::ProxyHandle;
+
+mod handle;
+pub use handle::RunnerHandle;
 
 pub struct Runner {
     rx: mpsc::Receiver<Msg>,
     instances: HashMap<InstanceId, u16>,
     ports: HashSet<u16>,
     handle: RunnerHandle,
+    proxy_handle: ProxyHandle,
     container_runtime: Arc<ContainerRuntime>,
     ctl_sender: Arc<sender::Sender>,
 }
 
 impl Runner {
     #[must_use]
-    pub fn new(docker: Arc<Docker>, sender: Arc<sender::Sender>) -> (Runner, RunnerHandle) {
+    pub fn new(
+        docker: Arc<Docker>,
+        sender: Arc<sender::Sender>,
+        proxy: ProxyHandle,
+    ) -> (Runner, RunnerHandle) {
         let (tx, rx) = mpsc::channel(16);
         let handle = RunnerHandle(tx);
         let actor = Runner {
@@ -38,6 +44,7 @@ impl Runner {
             instances: HashMap::default(),
             ports: HashSet::default(),
             handle: handle.clone(),
+            proxy_handle: proxy,
             container_runtime: Arc::new(ContainerRuntime::new(docker)),
             ctl_sender: sender,
         };
@@ -109,12 +116,14 @@ impl Runner {
         };
         self.instances.insert(id, port);
         self.ports.insert(port);
+        self.proxy_handle.add_instance(id, port);
         Ok(port)
     }
 
     fn remove_instance(&mut self, id: InstanceId) {
         let freed_port = self.instances.remove(&id).unwrap();
         self.ports.remove(&freed_port);
+        self.proxy_handle.remove_instance(id);
     }
 }
 
