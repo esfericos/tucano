@@ -12,6 +12,7 @@ use utils::server::mk_listener;
 use crate::{args::CtlArgs, discovery::Discovery, http::HttpState, worker_mgr::WorkerMgr};
 
 mod args;
+mod balancer;
 mod discovery;
 mod http;
 mod worker_mgr;
