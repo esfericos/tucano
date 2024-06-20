@@ -1,10 +1,10 @@
-use std::net::SocketAddr;
+use std::net::IpAddr;
 
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Node {
-    pub addr: SocketAddr,
+    pub addr: IpAddr,
     pub kind: NodeKind,
 }
 

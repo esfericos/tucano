@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+use std::net::IpAddr;
 
 use clap::{Parser, Subcommand};
 
@@ -20,7 +20,7 @@ pub enum Cmd {
 pub enum NodeCmd {
     List,
     Show {
-        address: SocketAddr,
+        address: IpAddr,
     },
     #[clap(subcommand)]
     Worker(WorkerCmd),
@@ -28,7 +28,7 @@ pub enum NodeCmd {
 
 #[derive(Debug, Subcommand)]
 pub enum WorkerCmd {
-    Remove { address: SocketAddr },
+    Remove { address: IpAddr },
 }
 
 #[derive(Debug, Subcommand)]

@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::{collections::HashMap, net::SocketAddr};
+use std::{collections::HashMap, net::IpAddr};
 
 use chrono::{DateTime, Utc};
 use proto::{
@@ -13,7 +13,7 @@ use tracing::instrument;
 pub struct Discovery {
     rx: mpsc::Receiver<Msg>,
     // TODO: Add more information on workers
-    workers: HashMap<SocketAddr, Metrics>,
+    workers: HashMap<IpAddr, Metrics>,
     services: HashMap<ServiceId, ServiceInfo>,
     instances: HashMap<InstanceId, InstanceInfo>,
     deployments: HashMap<DeploymentId, DeploymentInfo>,
@@ -74,12 +74,12 @@ impl DiscoveryHandle {
     }
 
     #[allow(dead_code)] // TODO: Remove
-    pub async fn add_worker(&self, addr: SocketAddr, metrics: Metrics) {
+    pub async fn add_worker(&self, addr: IpAddr, metrics: Metrics) {
         self.send(Msg::WorkerAdd(addr, metrics)).await;
     }
 
     #[allow(dead_code)] // TODO: Remove
-    pub async fn drop_worker(&self, addr: SocketAddr) {
+    pub async fn drop_worker(&self, addr: IpAddr) {
         self.send(Msg::WorkerDrop(addr)).await;
     }
 
@@ -94,8 +94,8 @@ impl DiscoveryHandle {
 #[derive(Debug)]
 #[allow(clippy::enum_variant_names)] // remove this once more variants are added
 enum Msg {
-    WorkerAdd(SocketAddr, Metrics),
-    WorkerDrop(SocketAddr),
+    WorkerAdd(IpAddr, Metrics),
+    WorkerDrop(IpAddr),
     WorkerQuery(oneshot::Sender<Vec<WorkerDetails>>),
     // TODO: add service and instance operations
 }
@@ -135,6 +135,6 @@ pub struct DeploymentInfo {
 
 #[derive(Debug)]
 pub struct WorkerDetails {
-    pub addr: SocketAddr,
+    pub addr: IpAddr,
     pub metrics: Metrics,
 }
