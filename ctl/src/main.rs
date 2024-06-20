@@ -1,5 +1,5 @@
 use std::{
-    net::{IpAddr, Ipv4Addr},
+    net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::Arc,
 };
 
@@ -9,11 +9,12 @@ use tokio::task::JoinSet;
 use tracing::info;
 use utils::server::mk_listener;
 
-use crate::{args::CtlArgs, discovery::Discovery, http::HttpState};
+use crate::{args::CtlArgs, discovery::Discovery, http::HttpState, worker_mgr::WorkerMgr};
 
 mod args;
 mod discovery;
 mod http;
+mod worker_mgr;
 
 const ANY_IP: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
 
@@ -34,11 +35,17 @@ async fn main() -> eyre::Result<()> {
         discovery.run().await;
     });
 
+    let (worker_mgr, worker_mgr_handle) = WorkerMgr::new(args.worker_liveness_timeout);
+    bag.spawn(async move {
+        worker_mgr.run().await;
+    });
+
     bag.spawn(async move {
         let state = HttpState {
-            discovery: discovery_handle.clone(),
+            discovery: discovery_handle,
+            worker_mgr: worker_mgr_handle,
         };
-        let app = http::mk_app(state);
+        let app = http::mk_app(state).into_make_service_with_connect_info::<SocketAddr>();
         info!("ctl http listening at {ANY_IP}:{CTL_HTTP_PORT}");
         axum::serve(http_listener, app).await.unwrap();
     });

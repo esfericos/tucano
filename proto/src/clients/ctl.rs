@@ -14,9 +14,7 @@ use crate::{
             DeployServiceReq, DeployServiceRes, RedeploymentPolicy, ReportDeployInstanceStatusReq,
             ReportDeployInstanceStatusRes, TerminateServiceReq, TerminateServiceRes,
         },
-        worker::{
-            ByeRes, HelloReq, HelloRes, PortsMap, PushWorkerMetricsReq, PushWorkerMetricsRes,
-        },
+        worker::{ByeRes, HelloReq, HelloRes, PushWorkerMetricsReq, PushWorkerMetricsRes},
     },
     well_known::CTL_HTTP_PORT,
 };
@@ -42,8 +40,8 @@ impl CtlClient {
         format!("{base}{path}", base = self.base_url)
     }
 
-    pub async fn hello(&self, ports: PortsMap) -> eyre::Result<HelloRes> {
-        let body = HelloReq { ports };
+    pub async fn hello(&self) -> eyre::Result<HelloRes> {
+        let body = HelloReq {};
         self.client.send(self.url("/worker/hello"), &body).await
     }
 

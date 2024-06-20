@@ -4,20 +4,19 @@ use serde::{Deserialize, Serialize};
 use crate::common::node::Metrics;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct HelloReq {
-    pub ports: PortsMap,
-}
+pub struct HelloReq {}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PortsMap {
-    #[serde(rename = "h")]
-    pub http: u16,
-    #[serde(rename = "p")]
-    pub proxy: u16,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct HelloRes {
+    pub status: HelloStatus,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct HelloRes {}
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum HelloStatus {
+    Ok,
+    AlreadyRegistered,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ByeReq {}
@@ -40,4 +39,16 @@ pub struct PushWorkerMetricsReq {
 
 /// Response for [`PushWorkerMetricsReq`].
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PushWorkerMetricsRes {}
+pub struct PushWorkerMetricsRes {
+    pub status: PushMetricsStatus,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum PushMetricsStatus {
+    /// Acknowledged.
+    Ack,
+    /// The worker has been removed from the cluster (at some moment in the
+    /// past), and this metrics call is refused.
+    Removed,
+}

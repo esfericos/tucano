@@ -10,12 +10,15 @@ pub struct WorkerArgs {
 
     /// Interval at which metrics are pushed to the controller.
     ///
-    /// Time in seconds. Must be greater than 1.
+    /// Notice that this interval MUST be smaller than the value configured for
+    /// the controller's `--worker_liveness_timeout` parameter.
+    ///
+    /// Time in seconds. Should be greater than 1.
     #[arg(
-        long,
-        default_value = "5",
-        value_parser = parse_duration
-    )]
+    long,
+    default_value = "5",
+    value_parser = parse_duration
+)]
     pub metrics_report_interval: Duration,
 }
 
