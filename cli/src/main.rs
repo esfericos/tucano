@@ -1,12 +1,8 @@
 use std::net::IpAddr;
 
 use clap::{Parser, Subcommand};
-use prettytable::cell::Cell;
-use prettytable::row::Row;
-use prettytable::Table;
+use prettytable::{cell::Cell, row::Row, Table};
 use proto::clients::CtlClient;
-
-use tokio;
 
 #[derive(Debug, Parser)]
 pub struct Cli {
@@ -68,7 +64,7 @@ async fn handle_node(cmd: &NodeCmd, ctl_client: CtlClient) {
         NodeCmd::Worker(_) => todo!(),
     }
 }
-
+#[allow(clippy::unused_async)]
 async fn handle_service(cmd: &ServiceCmd) {
     match cmd {
         ServiceCmd::List => todo!(),
