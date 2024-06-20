@@ -1,24 +1,12 @@
-use std::{net::SocketAddr, time::Duration};
+use std::{net::IpAddr, time::Duration};
 
 use clap::Parser;
 
 #[derive(Debug, Parser)]
 pub struct WorkerArgs {
-    /// This worker node's HTTP server port.
-    ///
-    /// If not provided, a random port will be chosen.
-    #[arg(long)]
-    pub http_port: Option<u16>,
-
-    /// This worker node's Proxy server port.
-    ///
-    /// If not provided, a random port will be chosen.
-    #[arg(long)]
-    pub proxy_port: Option<u16>,
-
     /// Controller's HTTP address.
     #[arg(short, long)]
-    pub controller_addr: SocketAddr,
+    pub controller_addr: IpAddr,
 
     /// Interval at which metrics are pushed to the controller.
     ///

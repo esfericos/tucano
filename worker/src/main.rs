@@ -8,7 +8,10 @@ use bollard::Docker;
 use clap::Parser;
 use eyre::Result;
 use http::HttpState;
-use proto::clients::CtlClient;
+use proto::{
+    clients::CtlClient,
+    well_known::{WORKER_HTTP_PORT, WORKER_PROXY_PORT},
+};
 use runner::Runner;
 use tokio::task::JoinSet;
 use tracing::info;
@@ -33,15 +36,15 @@ async fn main() -> Result<()> {
 
     let ctl_client = CtlClient::new(args.controller_addr);
 
-    let (proxy_listener, proxy_port) = mk_listener(ANY_IP, args.proxy_port).await?;
-    let (http_listener, http_port) = mk_listener(ANY_IP, args.http_port).await?;
+    let proxy_listener = mk_listener(ANY_IP, WORKER_PROXY_PORT).await?;
+    let http_listener = mk_listener(ANY_IP, WORKER_HTTP_PORT).await?;
 
     let mut bag = JoinSet::new();
 
     let (proxy_state, proxy_handle) = ProxyState::new();
     bag.spawn(async move {
         let app = proxy::proxy.with_state(proxy_state);
-        info!("worker proxy listening at {ANY_IP}:{proxy_port}");
+        info!("worker proxy listening at {ANY_IP}:{WORKER_PROXY_PORT}");
         axum::serve(proxy_listener, app).await.unwrap();
     });
 
@@ -56,7 +59,7 @@ async fn main() -> Result<()> {
             runner: runner_handle.clone(),
         };
         let app = http::mk_app(state);
-        info!("worker http listening at {ANY_IP}:{http_port}");
+        info!("worker http listening at {ANY_IP}:{WORKER_HTTP_PORT}");
         axum::serve(http_listener, app).await.unwrap();
     });
 
@@ -73,10 +76,4 @@ async fn main() -> Result<()> {
     }
 
     Ok(())
-}
-
-#[derive(Debug)]
-pub struct PortMap {
-    pub proxy: u16,
-    pub host: u16,
 }

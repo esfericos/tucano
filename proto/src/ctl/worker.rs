@@ -8,7 +8,7 @@ pub struct HelloReq {
     pub ports: PortsMap,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PortsMap {
     #[serde(rename = "h")]
     pub http: u16,

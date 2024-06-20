@@ -1,4 +1,4 @@
-use std::{collections::HashMap, net::SocketAddr};
+use std::{collections::HashMap, net::IpAddr};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -34,7 +34,7 @@ pub enum RedeploymentPolicy {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeployServiceRes {
     pub deployment_id: DeploymentId,
-    pub instances: HashMap<InstanceId, SocketAddr>,
+    pub instances: HashMap<InstanceId, IpAddr>,
 }
 
 /// Stops a given service from running in the system.

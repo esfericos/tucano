@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::{net::IpAddr, sync::Arc};
 
 use chrono::{DateTime, Utc};
 
@@ -18,6 +18,7 @@ use crate::{
             ByeRes, HelloReq, HelloRes, PortsMap, PushWorkerMetricsReq, PushWorkerMetricsRes,
         },
     },
+    well_known::CTL_HTTP_PORT,
 };
 
 #[derive(Clone)]
@@ -28,8 +29,10 @@ pub struct CtlClient {
 
 impl CtlClient {
     #[must_use]
-    pub fn new(ctl_addr: SocketAddr) -> Self {
-        let base_url = format!("http://{ctl_addr}").into_boxed_str().into();
+    pub fn new(ctl_addr: IpAddr) -> Self {
+        let base_url = format!("http://{ctl_addr}:{CTL_HTTP_PORT}")
+            .into_boxed_str()
+            .into();
         let client = BaseClient::new();
         CtlClient { base_url, client }
     }

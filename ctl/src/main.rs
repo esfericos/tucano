@@ -4,6 +4,7 @@ use std::{
 };
 
 use clap::Parser;
+use proto::well_known::{CTL_BALANCER_PORT, CTL_HTTP_PORT};
 use tokio::task::JoinSet;
 use tracing::info;
 use utils::server::mk_listener;
@@ -23,8 +24,8 @@ async fn main() -> eyre::Result<()> {
     let args = Arc::new(CtlArgs::parse());
     info!(?args, "started ctl");
 
-    let (_balancer_listener, _balancer_port) = mk_listener(ANY_IP, args.balancer_port).await?;
-    let (http_listener, http_port) = mk_listener(ANY_IP, args.http_port).await?;
+    let _balancer_listener = mk_listener(ANY_IP, CTL_BALANCER_PORT).await?;
+    let http_listener = mk_listener(ANY_IP, CTL_HTTP_PORT).await?;
 
     let mut bag = JoinSet::new();
 
@@ -38,7 +39,7 @@ async fn main() -> eyre::Result<()> {
             discovery: discovery_handle.clone(),
         };
         let app = http::mk_app(state);
-        info!("ctl http listening at {ANY_IP}:{http_port}");
+        info!("ctl http listening at {ANY_IP}:{CTL_HTTP_PORT}");
         axum::serve(http_listener, app).await.unwrap();
     });
 
