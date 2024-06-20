@@ -11,5 +11,6 @@ workspace = true
 proto.workspace = true
 # External deps
 clap.workspace = true
+eyre.workspace = true
 prettytable-rs.workspace = true
 tokio.workspace = true
