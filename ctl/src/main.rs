@@ -3,13 +3,17 @@ use std::{
     sync::Arc,
 };
 
+use axum::handler::Handler;
 use clap::Parser;
 use proto::well_known::{CTL_BALANCER_PORT, CTL_HTTP_PORT};
 use tokio::task::JoinSet;
 use tracing::info;
 use utils::server::mk_listener;
 
-use crate::{args::CtlArgs, discovery::Discovery, http::HttpState, worker_mgr::WorkerMgr};
+use crate::{
+    args::CtlArgs, balancer::BalancerState, discovery::Discovery, http::HttpState,
+    worker_mgr::WorkerMgr,
+};
 
 mod args;
 mod balancer;
@@ -26,7 +30,7 @@ async fn main() -> eyre::Result<()> {
     let args = Arc::new(CtlArgs::parse());
     info!(?args, "started ctl");
 
-    let _balancer_listener = mk_listener(ANY_IP, CTL_BALANCER_PORT).await?;
+    let balancer_listener = mk_listener(ANY_IP, CTL_BALANCER_PORT).await?;
     let http_listener = mk_listener(ANY_IP, CTL_HTTP_PORT).await?;
 
     let mut bag = JoinSet::new();
@@ -39,6 +43,13 @@ async fn main() -> eyre::Result<()> {
     let (worker_mgr, worker_mgr_handle) = WorkerMgr::new(args.worker_liveness_timeout);
     bag.spawn(async move {
         worker_mgr.run().await;
+    });
+
+    let balancer_state = BalancerState::new();
+    bag.spawn(async move {
+        let app = balancer::proxy.with_state(balancer_state);
+        info!("balancer http listening at {ANY_IP}:{CTL_BALANCER_PORT}");
+        axum::serve(balancer_listener, app).await.unwrap();
     });
 
     bag.spawn(async move {
