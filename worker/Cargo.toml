@@ -13,6 +13,7 @@ proto.workspace = true
 # External deps (keep alphabetically sorted)
 axum.workspace = true
 bollard.workspace = true
+chrono.workspace = true
 clap.workspace = true
 eyre.workspace = true
 futures-util.workspace = true

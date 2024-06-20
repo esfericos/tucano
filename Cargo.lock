@@ -1072,6 +1072,8 @@ name = "proto"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "eyre",
+ "reqwest",
  "serde",
  "serde_json",
  "uuid",
@@ -1990,6 +1992,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "bollard",
+ "chrono",
  "clap",
  "eyre",
  "futures-util",

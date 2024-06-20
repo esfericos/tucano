@@ -4,7 +4,7 @@ use axum::handler::Handler;
 use bollard::Docker;
 use eyre::Result;
 use http::HttpState;
-use proto::well_known;
+use proto::{clients::CtlClient, well_known};
 use runner::Runner;
 use tracing::info;
 
@@ -15,7 +15,6 @@ mod http;
 mod monitor;
 mod proxy;
 mod runner;
-mod sender;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -24,13 +23,13 @@ async fn main() -> Result<()> {
     let args = Arc::new(WorkerArgs::parse());
     info!(?args, "started worker");
 
-    let sender = Arc::new(sender::Sender::new(args.controller_addr));
+    let ctl_client = CtlClient::new(args.controller_addr);
 
     let pusher_handle = tokio::spawn({
         let args = Arc::clone(&args);
-        let sender = Arc::clone(&sender);
+        let ctl_client = ctl_client.clone();
         async move {
-            pusher::start_pusher(args, sender).await;
+            pusher::start_pusher(args, ctl_client).await;
         }
     });
 
@@ -50,7 +49,7 @@ async fn main() -> Result<()> {
     });
 
     let docker = Arc::new(Docker::connect_with_defaults().unwrap());
-    let (runner, runner_handle) = Runner::new(docker, sender, proxy_handle);
+    let (runner, runner_handle) = Runner::new(docker, ctl_client, proxy_handle);
     let runner_actor_handle = tokio::spawn(async move {
         runner.run().await;
     });

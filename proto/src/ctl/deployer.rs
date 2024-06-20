@@ -16,7 +16,7 @@ pub struct DeploymentId(pub Uuid);
 
 /// Starts a new deploy in the system.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct DeployReq {
+pub struct DeployServiceReq {
     pub service_spec: ServiceSpec,
     pub redeployment_policy: RedeploymentPolicy,
 }
@@ -32,20 +32,20 @@ pub enum RedeploymentPolicy {
 
 /// Response for [`DeployReq`].
 #[derive(Debug, Serialize, Deserialize)]
-pub struct DeployRes {
+pub struct DeployServiceRes {
     pub deployment_id: DeploymentId,
     pub instances_mapping: HashMap<InstanceId, SocketAddr>,
 }
 
 /// Stops a given service from running in the system.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TerminateReq {
+pub struct TerminateServiceReq {
     pub service_id: ServiceId,
 }
 
 /// Response for [`TerminateReq`].
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TerminateRes {}
+pub struct TerminateServiceRes {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ReportDeployInstanceStatusReq {

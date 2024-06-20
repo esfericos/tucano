@@ -11,8 +11,12 @@ pub struct HttpState {
 
 pub async fn run_server(state: HttpState) {
     let app = Router::new()
-        .route("/instance/deploy", post(runner::deploy_instance))
-        .route("/instance/terminate", post(runner::terminate_instance))
+        .nest(
+            "/runner",
+            Router::new()
+                .route("/deploy-instance", post(runner::deploy_instance))
+                .route("/terminate-instance", post(runner::terminate_instance)),
+        )
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:6969").await.unwrap();
