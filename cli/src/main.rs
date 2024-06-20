@@ -50,7 +50,7 @@ async fn main() {
 
     match cli.cmd {
         Cmd::Node(cmd) => handle_node(&cmd, ctl_client).await,
-        Cmd::Service(cmd) => handle_service(&cmd).await,
+        Cmd::Service(cmd) => handle_service(&cmd),
     }
 }
 
@@ -64,8 +64,8 @@ async fn handle_node(cmd: &NodeCmd, ctl_client: CtlClient) {
         NodeCmd::Worker(_) => todo!(),
     }
 }
-#[allow(clippy::unused_async)]
-async fn handle_service(cmd: &ServiceCmd) {
+
+fn handle_service(cmd: &ServiceCmd) {
     match cmd {
         ServiceCmd::List => todo!(),
         ServiceCmd::Show { .. } => todo!(),
