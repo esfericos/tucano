@@ -21,21 +21,13 @@ use hyper_util::{
 };
 use proto::{common::instance::InstanceId, well_known::PROXY_INSTANCE_HEADER_NAME};
 use reqwest::StatusCode;
-use utils::http;
+use utils::http::{self, OptionExt as _, ResultExt as _};
 
 pub async fn proxy(
     State(proxy): State<ProxyState>,
     mut req: Request,
 ) -> http::Result<impl IntoResponse> {
-    // TODO: fix this later
-    let id: InstanceId = req
-        .headers_mut()
-        .remove(PROXY_INSTANCE_HEADER_NAME)
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .try_into()
-        .unwrap();
+    let id = extract_instance_id(&mut req)?;
 
     let port = {
         let read_map = proxy.ports.read().unwrap();
@@ -43,19 +35,18 @@ pub async fn proxy(
     };
 
     *req.uri_mut() = {
-        let addr = format!("127.0.0.1s:{port}");
         let uri = req.uri();
         let mut parts = uri.clone().into_parts();
-        parts.authority = Authority::from_str(&addr).ok();
+        parts.authority = Authority::from_str(&format!("127.0.0.1:{port}")).ok();
         parts.scheme = Some(Scheme::HTTP);
         Uri::from_parts(parts).unwrap()
     };
 
-    if let Ok(res) = proxy.client.request(req).await {
-        Ok(res)
-    } else {
-        panic!("{}", StatusCode::BAD_GATEWAY)
-    }
+    proxy
+        .client
+        .request(req)
+        .await
+        .http_error(StatusCode::BAD_GATEWAY, "bad gateway")
 }
 
 #[derive(Clone)]
@@ -97,4 +88,17 @@ impl ProxyHandle {
         let mut map = self.ports.write().unwrap();
         map.remove(&id);
     }
+}
+
+fn extract_instance_id(req: &mut Request) -> http::Result<InstanceId> {
+    // i'm so sorry
+    let inner = req
+        .headers_mut()
+        .remove(PROXY_INSTANCE_HEADER_NAME)
+        .or_http_error(StatusCode::BAD_REQUEST, "missing instance id from gw")?
+        .to_str()
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .or_http_error(StatusCode::BAD_REQUEST, "invalid instance id")?;
+    Ok(InstanceId(inner))
 }

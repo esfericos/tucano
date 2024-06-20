@@ -1686,6 +1686,7 @@ dependencies = [
  "axum",
  "eyre",
  "serde_json",
+ "tracing",
  "tracing-subscriber",
 ]
 
