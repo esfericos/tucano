@@ -4,9 +4,10 @@ use axum::handler::Handler;
 use bollard::Docker;
 use eyre::Result;
 use http::HttpState;
-use proto::{clients::CtlClient, well_known};
+use proto::{clients::CtlClient, well_known::WORKER_PROXY_PORT};
 use runner::Runner;
 use tracing::info;
+use utils::server;
 
 use crate::{args::WorkerArgs, monitor::pusher, proxy::ProxyState};
 
@@ -37,15 +38,7 @@ async fn main() -> Result<()> {
 
     let proxy_server = tokio::spawn(async {
         let app = proxy::proxy.with_state(proxy_state);
-        let listener = tokio::net::TcpListener::bind(("0.0.0.0", well_known::WORKER_PROXY_PORT))
-            .await
-            .unwrap();
-
-        tracing::info!(
-            "Proxy server listening at port {}",
-            well_known::WORKER_PROXY_PORT
-        );
-        axum::serve(listener, app).await.unwrap();
+        server::listen("worker proxy", app, ("0.0.0.0", WORKER_PROXY_PORT)).await;
     });
 
     let docker = Arc::new(Docker::connect_with_defaults().unwrap());

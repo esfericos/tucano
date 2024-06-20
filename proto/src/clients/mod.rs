@@ -1,4 +1,6 @@
 mod ctl;
+use std::time::Duration;
+
 pub use ctl::CtlClient;
 
 mod worker;
@@ -14,7 +16,10 @@ pub struct BaseClient {
 impl BaseClient {
     #[must_use]
     fn new() -> Self {
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(20))
+            .build()
+            .unwrap();
         Self { client }
     }
 

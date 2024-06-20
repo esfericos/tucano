@@ -1,5 +1,6 @@
 use axum::{routing::post, Router};
-use tracing::info;
+use proto::well_known::CTL_HTTP_PORT;
+use utils::server;
 
 use crate::discovery::DiscoveryHandle;
 
@@ -23,7 +24,5 @@ pub async fn run_server(state: HttpState) {
         )
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    info!("HTTP listening at port 3000");
-    axum::serve(listener, app).await.unwrap();
+    server::listen("controller http", app, ("0.0.0.0", CTL_HTTP_PORT)).await;
 }

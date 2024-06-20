@@ -1,4 +1,6 @@
 use axum::{routing::post, Router};
+use proto::well_known::WORKER_HTTP_PORT;
+use utils::server;
 
 use crate::runner::RunnerHandle;
 
@@ -19,6 +21,5 @@ pub async fn run_server(state: HttpState) {
         )
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:6969").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    server::listen("worker http", app, ("0.0.0.0", WORKER_HTTP_PORT)).await;
 }

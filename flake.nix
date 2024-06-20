@@ -25,7 +25,7 @@
         packages = let
           commonPackages = with pkgs; [
             # The usual Rust profile
-            (rust-bin.stable."1.76.0".default.override {
+            (rust-bin.stable."1.79.0".default.override {
               extensions = ["rust-src" "rust-analyzer" "llvm-tools"];
             })
             # We need a nightly version of rustfmt to format this crate
@@ -52,6 +52,7 @@
             CoreFoundation
             CoreServices
             SystemConfiguration
+            IOKit
           ]);
         in (commonPackages ++ darwinPackages);
       };
