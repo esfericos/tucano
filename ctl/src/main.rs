@@ -47,7 +47,9 @@ async fn main() -> eyre::Result<()> {
 
     let balancer_state = BalancerState::new();
     bag.spawn(async move {
-        let app = balancer::proxy.with_state(balancer_state);
+        let app = balancer::proxy
+            .with_state(balancer_state)
+            .into_make_service_with_connect_info::<SocketAddr>();
         info!("balancer http listening at {ANY_IP}:{CTL_BALANCER_PORT}");
         axum::serve(balancer_listener, app).await.unwrap();
     });

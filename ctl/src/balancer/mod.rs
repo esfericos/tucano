@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    net::IpAddr,
+    net::{IpAddr, SocketAddr},
     str::FromStr as _,
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -11,7 +11,7 @@ use std::{
 
 use axum::{
     body::Body,
-    extract::{Request, State},
+    extract::{ConnectInfo, Request, State},
     http::{
         uri::{Authority, Scheme},
         HeaderValue, StatusCode, Uri,
@@ -24,7 +24,7 @@ use hyper_util::{
 };
 use proto::{
     common::{instance::InstanceId, service::ServiceId},
-    well_known::PROXY_INSTANCE_HEADER_NAME,
+    well_known::{PROXY_FORWARDED_HEADER_NAME, PROXY_INSTANCE_HEADER_NAME},
 };
 use utils::http::{self, OptionExt as _, ResultExt as _};
 
@@ -74,26 +74,30 @@ impl BalancerState {
     }
 }
 
-#[axum::debug_handler]
 pub async fn proxy(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     State(state): State<BalancerState>,
     mut req: Request,
 ) -> http::Result<impl IntoResponse> {
     let service = extract_service_id(&mut req)?;
 
-    let (instance, server) = state.balancer.next(&service);
+    let (instance, server_addr) = state.balancer.next(&service);
 
     *req.uri_mut() = {
         let uri = req.uri();
         let mut parts = uri.clone().into_parts();
-        parts.authority = Authority::from_str(&format!("{server}")).ok();
+        parts.authority = Authority::from_str(&server_addr.to_string()).ok();
         parts.scheme = Some(Scheme::HTTP);
         Uri::from_parts(parts).unwrap()
     };
 
     req.headers_mut().insert(
         PROXY_INSTANCE_HEADER_NAME,
-        HeaderValue::from_str(&format!("{instance}")).unwrap(),
+        HeaderValue::from_str(&instance.to_string()).unwrap(),
+    );
+    req.headers_mut().insert(
+        PROXY_FORWARDED_HEADER_NAME,
+        HeaderValue::from_str(&addr.ip().to_string()).unwrap(),
     );
 
     state
@@ -106,7 +110,7 @@ pub async fn proxy(
 fn extract_service_id(req: &mut Request) -> http::Result<ServiceId> {
     let inner = req
         .headers()
-        .get("host")
+        .get("Host")
         .unwrap()
         .to_str()
         .ok()
