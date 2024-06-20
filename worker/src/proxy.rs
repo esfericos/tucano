@@ -21,7 +21,7 @@ use hyper_util::{
 };
 use proto::{common::instance::InstanceId, well_known::PROXY_INSTANCE_HEADER_NAME};
 use reqwest::StatusCode;
-use setup::http;
+use utils::http;
 
 pub async fn proxy(
     State(proxy): State<ProxyState>,

@@ -7,7 +7,7 @@ mod http;
 
 #[tokio::main]
 async fn main() {
-    setup::tracing();
+    utils::setup::tracing();
     info!("started controller");
 
     let (discovery, discovery_handle) = Discovery::new();

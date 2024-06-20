@@ -387,9 +387,9 @@ dependencies = [
  "chrono",
  "eyre",
  "proto",
- "setup",
  "tokio",
  "tracing",
+ "utils",
  "uuid",
 ]
 
@@ -1311,16 +1311,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "setup"
-version = "0.1.0"
-dependencies = [
- "axum",
- "eyre",
- "serde_json",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "sharded-slab"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1690,6 +1680,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
 
 [[package]]
+name = "utils"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "eyre",
+ "serde_json",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "uuid"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1999,9 +1999,9 @@ dependencies = [
  "hyper-util",
  "proto",
  "reqwest",
- "setup",
  "sysinfo",
  "tokio",
  "tracing",
+ "utils",
  "uuid",
 ]

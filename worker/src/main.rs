@@ -18,7 +18,7 @@ mod runner;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    setup::tracing();
+    utils::setup::tracing();
 
     let args = Arc::new(WorkerArgs::parse());
     info!(?args, "started worker");

@@ -1,5 +1,5 @@
 [workspace]
-members = ["cli", "crates/*", "ctl", "proto", "worker"]
+members = ["cli", "ctl", "proto", "worker", "utils"]
 resolver = "2"
 
 [workspace.package]
@@ -10,7 +10,7 @@ edition = "2021"
 # Internal deps
 ctl.path = "ctl"
 proto.path = "proto"
-setup.path = "crates/setup"
+utils.path = "utils"
 worker.path = "worker"
 # External deps (keep alphabetically sorted)
 axum = { version = "0.7", features = ["macros"] }

@@ -3,7 +3,7 @@ use proto::worker::runner::{
     DeployInstanceReq, DeployInstanceRes, TerminateInstanceReq, TerminateInstanceRes,
 };
 use reqwest::StatusCode;
-use setup::http;
+use utils::http;
 
 use crate::http::HttpState;
 

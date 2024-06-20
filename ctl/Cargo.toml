@@ -8,7 +8,7 @@ workspace = true
 
 [dependencies]
 proto.workspace = true
-setup.workspace = true
+utils.workspace = true
 
 axum.workspace = true
 chrono.workspace = true
