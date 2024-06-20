@@ -29,10 +29,13 @@ pub async fn proxy(
 ) -> http::Result<impl IntoResponse> {
     let id = extract_instance_id(&mut req)?;
 
-    let port = {
+    let maybe_port = {
         let read_map = proxy.ports.read().unwrap();
-        *read_map.get(&id).unwrap()
+        read_map.get(&id).copied()
     };
+    let port = maybe_port
+        .ok_or_else(|| eyre::eyre!("requested instance doesn't exist at requested worker"))
+        .http_error(StatusCode::BAD_GATEWAY, "bad gateway")?;
 
     *req.uri_mut() = {
         let uri = req.uri();
