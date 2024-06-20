@@ -1,35 +1,24 @@
-use std::{net::IpAddr, time::Duration};
+use std::{net::SocketAddr, time::Duration};
 
-use clap::{value_parser, Parser};
+use clap::Parser;
 
-#[derive(Debug)]
+#[derive(Debug, Parser)]
 pub struct WorkerArgs {
-    /// Controller's address.
-    #[allow(dead_code)]
-    pub controller_addr: IpAddr,
-
-    /// Interval at which metrics are pushed to the controller.
-    pub metrics_report_interval: Duration,
-}
-
-impl WorkerArgs {
-    /// Parses the process arguments and returns a new [`Args`].
+    /// This worker node's HTTP server port.
     ///
-    /// Panics if missing arguments or if arguments are invalid.
-    pub fn parse() -> Self {
-        let raw = RawWorkerArgs::parse();
-        WorkerArgs {
-            controller_addr: raw.controller_addr,
-            metrics_report_interval: Duration::from_secs(raw.metrics_report_interval.into()),
-        }
-    }
-}
+    /// If not provided, a random port will be chosen.
+    #[arg(long)]
+    pub http_port: Option<u16>,
 
-#[derive(Parser)]
-struct RawWorkerArgs {
+    /// This worker node's Proxy server port.
+    ///
+    /// If not provided, a random port will be chosen.
+    #[arg(long)]
+    pub proxy_port: Option<u16>,
+
     /// Controller's HTTP address.
     #[arg(short, long)]
-    controller_addr: IpAddr,
+    pub controller_addr: SocketAddr,
 
     /// Interval at which metrics are pushed to the controller.
     ///
@@ -37,7 +26,12 @@ struct RawWorkerArgs {
     #[arg(
         long,
         default_value = "5",
-        value_parser = value_parser!(u32).range(1..)
+        value_parser = parse_duration
     )]
-    metrics_report_interval: u32,
+    pub metrics_report_interval: Duration,
+}
+
+fn parse_duration(arg: &str) -> eyre::Result<Duration> {
+    let s = arg.parse()?;
+    Ok(Duration::from_secs(s))
 }

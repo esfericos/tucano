@@ -1,8 +1,8 @@
 use axum::Json;
-use proto::{common::node::Metrics, ctl::worker::PushWorkerMetricsRes};
+use proto::ctl::worker::{PushWorkerMetricsReq, PushWorkerMetricsRes};
 use tracing::info;
 
-pub async fn push_metrics(Json(payload): Json<Metrics>) -> Json<PushWorkerMetricsRes> {
+pub async fn push_metrics(Json(payload): Json<PushWorkerMetricsReq>) -> Json<PushWorkerMetricsRes> {
     info!("{payload:#?}");
-    todo!()
+    Json(PushWorkerMetricsRes {})
 }

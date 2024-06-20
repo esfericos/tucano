@@ -38,6 +38,8 @@ impl BaseClient {
             .send()
             .await
             .wrap_err("failed to send request to worker")?
+            .error_for_status()
+            .wrap_err("http request failed")?
             .json::<Res>()
             .await
             .wrap_err("failed to parse response from worker")?;

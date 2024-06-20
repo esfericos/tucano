@@ -1,24 +1,27 @@
-use std::{convert::Infallible, future::IntoFuture, io};
+use std::net::IpAddr;
 
-use axum::{
-    extract::Request,
-    response::Response,
-    serve::{IncomingStream, Serve},
-};
-use tokio::net::{TcpListener, ToSocketAddrs};
-use tower::Service;
-use tracing::info;
+use eyre::Context;
+use tokio::net::TcpListener;
 
-pub async fn listen<A, M, S>(name: &'static str, mk_svc: M, addr: A)
-where
-    A: ToSocketAddrs,
-    M: for<'a> Service<IncomingStream<'a>, Error = Infallible, Response = S>,
-    S: Service<Request, Response = Response, Error = Infallible> + Clone + Send + 'static,
-    S::Future: Send,
-    Serve<M, S>: IntoFuture<Output = io::Result<()>>,
-{
-    let listener = TcpListener::bind(addr).await.unwrap();
-    let addr = listener.local_addr().unwrap();
-    info!("{name} listening at {addr}");
-    axum::serve(listener, mk_svc).await.unwrap();
+/// Creates a new TCP listener.
+///
+/// Tries to use the provided port, if any. If the provided port is already in
+/// use, this method will return an error.
+///
+/// If no port is provided, a random one will be chosen by the OS.
+pub async fn mk_listener(
+    addr: impl Into<IpAddr>,
+    port: Option<u16>,
+) -> eyre::Result<(TcpListener, u16)> {
+    let addr = addr.into();
+    let port = port.unwrap_or(0);
+
+    let listener = TcpListener::bind((addr, port))
+        .await
+        .wrap_err("failed to start tcp listener")?;
+
+    let local_addr = listener.local_addr().expect("local addr must exist");
+    let port = local_addr.port();
+
+    Ok((listener, port))
 }
