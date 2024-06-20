@@ -7,4 +7,9 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
+#Internal dependencies
+proto.workspace = true
+#External dependencies
 clap.workspace = true
+prettytable-rs.workspace = true
+tokio.workspace = true

@@ -3,7 +3,7 @@ use axum::{routing::post, Router};
 use crate::worker_mgr::WorkerMgrHandle;
 
 pub mod deployer;
-pub mod worker;
+pub mod worker_mgr;
 
 #[derive(Clone)]
 pub struct HttpState {
@@ -15,9 +15,10 @@ pub fn mk_app(state: HttpState) -> Router {
         .nest(
             "/worker",
             Router::new()
-                .route("/hello", post(worker::hello))
-                .route("/bye", post(worker::bye))
-                .route("/push-metrics", post(worker::push_metrics)),
+                .route("/hello", post(worker_mgr::hello))
+                .route("/bye", post(worker_mgr::bye))
+                .route("/push-metrics", post(worker_mgr::push_metrics))
+                .route("/query", post(worker_mgr::query_workers)),
         )
         .nest(
             "/deployer",

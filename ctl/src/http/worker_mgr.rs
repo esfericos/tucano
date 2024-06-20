@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 
 use axum::{
     extract::{ConnectInfo, State},
@@ -41,4 +41,10 @@ pub async fn push_metrics(
     let addr = addr.ip();
     let status = state.worker_mgr.push_metrics(addr, metrics).await;
     Json(PushWorkerMetricsRes { status })
+}
+
+pub async fn query_workers(State(state): State<HttpState>) -> Json<Vec<IpAddr>> {
+    let workers = state.worker_mgr.query_workers().await;
+    let worker_addrs = workers.into_iter().map(|w| w.addr).collect();
+    Json(worker_addrs)
 }

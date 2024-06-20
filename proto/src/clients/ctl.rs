@@ -14,7 +14,10 @@ use crate::{
             DeployServiceReq, DeployServiceRes, RedeploymentPolicy, ReportDeployInstanceStatusReq,
             ReportDeployInstanceStatusRes, TerminateServiceReq, TerminateServiceRes,
         },
-        worker::{ByeRes, HelloReq, HelloRes, PushWorkerMetricsReq, PushWorkerMetricsRes},
+        worker::{
+            ByeRes, HelloReq, HelloRes, PushWorkerMetricsReq, PushWorkerMetricsRes,
+            QueryWorkersReq, QueryWorkersRes,
+        },
     },
     well_known::CTL_HTTP_PORT,
 };
@@ -62,6 +65,11 @@ impl CtlClient {
         self.client
             .send(self.url("/worker/push-metrics"), &body)
             .await
+    }
+
+    pub async fn query_workers(&self) -> eyre::Result<QueryWorkersRes> {
+        let body = QueryWorkersReq {};
+        self.client.send(self.url("/worker/query"), &body).await
     }
 
     pub async fn deploy_service(

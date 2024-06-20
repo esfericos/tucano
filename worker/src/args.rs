@@ -6,7 +6,7 @@ use clap::Parser;
 pub struct WorkerArgs {
     /// Controller's HTTP address.
     #[arg(short, long)]
-    pub controller_addr: IpAddr,
+    pub ctl_addr: IpAddr,
 
     /// Interval at which metrics are pushed to the controller.
     ///
