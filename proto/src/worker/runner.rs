@@ -17,9 +17,9 @@ pub struct DeployInstanceRes {}
 
 /// Stops a given service from running in the system.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TerminateReq {
+pub struct TerminateInstanceReq {
     pub instance_id: InstanceId,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TerminateRes {}
+pub struct TerminateInstanceRes {}

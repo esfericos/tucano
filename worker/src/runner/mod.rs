@@ -6,7 +6,10 @@ use std::{
 use bollard::Docker;
 use container_rt::ContainerRuntime;
 use eyre::{Context as _, Ok, Report};
-use proto::common::instance::{self, InstanceId, InstanceSpec};
+use proto::{
+    clients::CtlClient,
+    common::instance::{self, InstanceId, InstanceSpec},
+};
 use tokio::{
     net::TcpListener,
     sync::{mpsc, oneshot},
@@ -14,7 +17,6 @@ use tokio::{
 };
 
 mod container_rt;
-use super::sender;
 use crate::proxy::ProxyHandle;
 
 mod handle;
@@ -27,14 +29,14 @@ pub struct Runner {
     handle: RunnerHandle,
     proxy_handle: ProxyHandle,
     container_runtime: Arc<ContainerRuntime>,
-    ctl_sender: Arc<sender::Sender>,
+    ctl_client: CtlClient,
 }
 
 impl Runner {
     #[must_use]
     pub fn new(
         docker: Arc<Docker>,
-        sender: Arc<sender::Sender>,
+        ctl_client: CtlClient,
         proxy: ProxyHandle,
     ) -> (Runner, RunnerHandle) {
         let (tx, rx) = mpsc::channel(16);
@@ -46,7 +48,7 @@ impl Runner {
             handle: handle.clone(),
             proxy_handle: proxy,
             container_runtime: Arc::new(ContainerRuntime::new(docker)),
-            ctl_sender: sender,
+            ctl_client,
         };
         (actor, handle)
     }
@@ -101,9 +103,9 @@ impl Runner {
             }
         }
 
-        let s = self.ctl_sender.clone();
+        let ctl_client = self.ctl_client.clone();
         tokio::spawn(async move {
-            let _ = s.send_status(id, status).await;
+            let _ = ctl_client.report_instance_status(id, status).await;
         });
     }
 

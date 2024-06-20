@@ -1,5 +1,7 @@
 use axum::{extract::State, response::IntoResponse, Json};
-use proto::worker::runner::{DeployInstanceReq, DeployInstanceRes, TerminateReq, TerminateRes};
+use proto::worker::runner::{
+    DeployInstanceReq, DeployInstanceRes, TerminateInstanceReq, TerminateInstanceRes,
+};
 use reqwest::StatusCode;
 use setup::http;
 
@@ -15,8 +17,8 @@ pub async fn deploy_instance(
 
 pub async fn terminate_instance(
     State(state): State<HttpState>,
-    Json(payload): Json<TerminateReq>,
+    Json(payload): Json<TerminateInstanceReq>,
 ) -> http::Result<impl IntoResponse> {
     state.runner.terminate_instance(payload.instance_id).await?;
-    Ok((StatusCode::ACCEPTED, Json(TerminateRes {})))
+    Ok((StatusCode::ACCEPTED, Json(TerminateInstanceRes {})))
 }
