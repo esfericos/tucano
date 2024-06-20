@@ -1,13 +1,12 @@
 use axum::{routing::post, Router};
 
-use crate::{discovery::DiscoveryHandle, worker_mgr::WorkerMgrHandle};
+use crate::worker_mgr::WorkerMgrHandle;
 
 pub mod deployer;
 pub mod worker;
 
 #[derive(Clone)]
 pub struct HttpState {
-    pub discovery: DiscoveryHandle,
     pub worker_mgr: WorkerMgrHandle,
 }
 
