@@ -2,10 +2,9 @@ mod ctl;
 pub use ctl::CtlClient;
 
 mod worker;
-pub use worker::WorkerClient;
-
 use eyre::Context as _;
 use serde::{de::DeserializeOwned, Serialize};
+pub use worker::WorkerClient;
 
 #[derive(Clone)]
 pub struct BaseClient {
