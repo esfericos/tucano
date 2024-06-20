@@ -12,6 +12,7 @@ utils.workspace = true
 
 axum.workspace = true
 chrono.workspace = true
+clap.workspace = true
 eyre.workspace = true
 tokio.workspace = true
 tracing.workspace = true

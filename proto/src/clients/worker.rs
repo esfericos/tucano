@@ -1,9 +1,8 @@
-use std::net::IpAddr;
+use std::net::SocketAddr;
 
 use crate::{
     clients::BaseClient,
     common::instance::{InstanceId, InstanceSpec},
-    well_known::WORKER_HTTP_PORT,
     worker::runner::{
         DeployInstanceReq, DeployInstanceRes, TerminateInstanceReq, TerminateInstanceRes,
     },
@@ -23,14 +22,14 @@ impl WorkerClient {
     }
 
     #[allow(clippy::unused_self)]
-    fn url(&self, worker: IpAddr, path: &str) -> String {
+    fn url(&self, worker: SocketAddr, path: &str) -> String {
         assert!(path.starts_with('/'));
-        format!("http://{worker}:{WORKER_HTTP_PORT}{path}")
+        format!("http://{worker}{path}")
     }
 
     pub async fn deploy_instance(
         &self,
-        worker: IpAddr,
+        worker: SocketAddr,
         instance_spec: InstanceSpec,
     ) -> eyre::Result<DeployInstanceRes> {
         let body = DeployInstanceReq { instance_spec };
@@ -41,7 +40,7 @@ impl WorkerClient {
 
     pub async fn terminate_instance(
         &self,
-        worker: IpAddr,
+        worker: SocketAddr,
         instance_id: InstanceId,
     ) -> eyre::Result<TerminateInstanceRes> {
         let body = TerminateInstanceReq { instance_id };

@@ -1,8 +1,5 @@
-use axum::{routing::post, Router};
-use proto::well_known::CTL_HTTP_PORT;
-use utils::server;
-
 use crate::discovery::DiscoveryHandle;
+use axum::{routing::post, Router};
 
 pub mod deployer;
 pub mod worker;
@@ -12,8 +9,8 @@ pub struct HttpState {
     pub discovery: DiscoveryHandle,
 }
 
-pub async fn run_server(state: HttpState) {
-    let app = Router::new()
+pub fn mk_app(state: HttpState) -> Router {
+    Router::new()
         .route("/worker/push-metrics", post(worker::push_metrics))
         .nest(
             "/deployer",
@@ -22,7 +19,5 @@ pub async fn run_server(state: HttpState) {
                 .route("/terminate-service", post(deployer::terminate_service))
                 .route("/status", post(deployer::report_instance_status)),
         )
-        .with_state(state);
-
-    server::listen("controller http", app, ("0.0.0.0", CTL_HTTP_PORT)).await;
+        .with_state(state)
 }
