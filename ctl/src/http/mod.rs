@@ -12,7 +12,13 @@ pub struct HttpState {
 
 pub fn mk_app(state: HttpState) -> Router {
     Router::new()
-        .route("/worker/push-metrics", post(worker::push_metrics))
+        .nest(
+            "/worker",
+            Router::new()
+                .route("/hello", post(worker::hello))
+                .route("/bye", post(worker::bye))
+                .route("/push-metrics", post(worker::push_metrics)),
+        )
         .nest(
             "/deployer",
             Router::new()
