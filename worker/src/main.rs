@@ -67,7 +67,7 @@ async fn main() -> Result<()> {
         let args = Arc::clone(&args);
         let ctl_client = ctl_client.clone();
         async move {
-            pusher::start_pusher(args, ctl_client).await;
+            pusher::start_pusher(args, ctl_client).await.unwrap();
         }
     });
 

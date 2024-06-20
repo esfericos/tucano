@@ -15,7 +15,7 @@ pub enum NodeKind {
     Worker,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Metrics {
     /// The average CPU usage.
     pub cpu_usage: f64,
