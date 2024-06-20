@@ -59,22 +59,18 @@ graph TB
       failed deploy attempt.
   - `discovery` -> acts as a central database that records all available worker
     nodes and services that are currently running on the system.
-  - `balancer` -> handles external-user requests and routes them to the
-    appropriate service which is running on a worker node.
+  - `balancer` -> handles external-user requests and routes them to the appropriate instance of a service which is running on a worker node. The same service can have multiple instances on different nodes.
 - **Worker**
+  - `http` -> receives requests from controller node to manage service instances (deploy, terminate).
+  - `proxy` -> receives requests from the `balancer` component to redirect users requests to proper instances. 
   - **Monitor**
     - `collector` -> collects system metrics (average CPU and memory) from the
       corresponding worker node.
-    - `scheduler` -> periodically calls the collector module to fetch the latest
+    - `scheduler` -> periodically calls the `collector` module to fetch the latest
       metrics, and sends them to the controller.
   - **Runner**
-    - `builder` -> Builds a new service on the corresponding worker node
-      (essentially, it is a glorified build script runner).
-    - `supervisor` -> Runs a service's "runtime script" to properly start the
-      service, and supervises such a service to handle errors, retries, etc. It
-      may also optionally call a health check endpoint for the corresponding
-      service.
-
+    - `container_runtime` -> deploys and manages new service instances on the corresponding worker node.
+    
 # Deployment seq. diagram
 
 ```mermaid
