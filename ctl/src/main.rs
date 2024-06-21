@@ -13,7 +13,7 @@ use utils::server::mk_listener;
 use crate::{args::CtlArgs, balancer::BalancerState, http::HttpState, worker_mgr::WorkerMgr};
 
 mod args;
-mod balancer
+mod balancer;
 mod http;
 mod worker_mgr;
 
