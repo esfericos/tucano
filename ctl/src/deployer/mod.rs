@@ -123,7 +123,7 @@ impl Deployer {
         if workers.is_empty() {
             bail!("no workers on cluster pool");
         }
-        let instances = alloc::rand_many(&workers, spec.concurrency);
+        let instances = alloc::rr_alloc_many(&workers, spec.concurrency);
         let deployment_id = DeploymentId(Uuid::now_v7());
         let service_id = Arc::new(spec.service_id.clone());
 
