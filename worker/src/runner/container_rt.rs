@@ -14,7 +14,7 @@ use proto::{
     common::instance::{InstanceId, InstanceSpec, Status},
     well_known::GRACEFUL_SHUTDOWN_DEADLINE,
 };
-use tracing::error;
+use tracing::{debug, error, instrument};
 
 use super::RunnerHandle;
 
@@ -28,6 +28,7 @@ impl ContainerRuntime {
         ContainerRuntime { docker }
     }
 
+    #[instrument(skip_all, fields(instance_id = ?spec.instance_id))]
     pub async fn run_instance_lifecycle(
         &self,
         spec: InstanceSpec,
@@ -35,12 +36,14 @@ impl ContainerRuntime {
         handle: RunnerHandle,
     ) {
         let container_name = Self::create_container_name(spec.instance_id);
+        debug!(?spec, container_name, "running instance lifecycle");
 
-        if let Err(e) = self
+        if let Err(error) = self
             .create_and_run(&spec, port, container_name.clone())
             .await
         {
-            let error = e.to_string();
+            error!(?error, "failed to create/run container");
+            let error = error.to_string();
             handle
                 .report_instance_status(spec.instance_id, Status::FailedToStart { error })
                 .await;
@@ -48,6 +51,7 @@ impl ContainerRuntime {
         }
 
         // TODO: Add health check to verify whether the service is running
+        debug!("container running");
         handle
             .report_instance_status(spec.instance_id, Status::Started)
             .await;
@@ -58,15 +62,16 @@ impl ContainerRuntime {
             .expect("infallible operation")
         {
             ExitStatus::Terminated => {
+                debug!("container terminated");
                 handle
                     .report_instance_status(spec.instance_id, Status::Terminated)
                     .await;
             }
             ExitStatus::Crashed { status, error } => {
+                error!(status, instance_id = %spec.instance_id, "container crashed");
                 handle
                     .report_instance_status(spec.instance_id, Status::Crashed { error })
                     .await;
-                error!(status, instance_id = %spec.instance_id, "Process exited");
             }
         }
     }
@@ -97,8 +102,10 @@ impl ContainerRuntime {
         name: String,
     ) -> eyre::Result<()> {
         let create_response = self.create_container(spec, port, name.clone()).await?;
+        debug!("successfully `create` operation");
 
         self.run_container(create_response).await?;
+        debug!("successfully `run` operation");
 
         Ok(())
     }
@@ -184,8 +191,10 @@ impl ContainerRuntime {
             env: Some(vec![format!("PORT={port}"), format!("HOST={HOST}")]),
             host_config: Some(HostConfig {
                 auto_remove: Some(true),
-                cpu_shares: Some(spec.resource_config.cpu_shares),
-                memory: Some(spec.resource_config.memory_limit),
+                // FIXME: These aren't working right now.
+                //
+                // cpu_shares: Some(spec.resource_config.cpu_shares),
+                // memory: Some(spec.resource_config.memory_limit),
                 port_bindings: Some({
                     let mut map = HashMap::new();
                     map.insert(

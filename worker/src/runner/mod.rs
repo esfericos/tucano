@@ -15,6 +15,7 @@ use tokio::{
     sync::{mpsc, oneshot},
     task,
 };
+use tracing::{debug, error};
 
 mod container_rt;
 use crate::proxy::ProxyHandle;
@@ -93,19 +94,22 @@ impl Runner {
         Ok(())
     }
 
-    fn report_instance_status(&mut self, id: InstanceId, status: instance::Status) {
+    fn report_instance_status(&mut self, instance_id: InstanceId, status: instance::Status) {
         use instance::Status::*;
         match &status {
             Started => (),
-            Terminated => self.remove_instance(id),
+            Terminated => self.remove_instance(instance_id),
             Crashed { error: _ } | Killed { reason: _ } | FailedToStart { error: _ } => {
-                self.remove_instance(id);
+                self.remove_instance(instance_id);
             }
         }
 
         let ctl_client = self.ctl_client.clone();
         tokio::spawn(async move {
-            let _ = ctl_client.report_instance_status(id, status).await;
+            debug!(?instance_id, ?status, "reporting status");
+            if let Err(error) = ctl_client.report_instance_status(instance_id, status).await {
+                error!(?error, "failed to report instance status");
+            }
         });
     }
 

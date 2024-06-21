@@ -54,10 +54,10 @@ pub enum ServiceCmd {
         public: bool,
         #[arg(long)]
         concurrency: u32,
-        #[arg(long)]
-        cpu_shares: i64,
-        #[arg(long)]
-        memory_limit: i64,
+        // #[arg(long)]
+        // cpu_shares: i64,
+        // #[arg(long)]
+        // memory_limit: i64,
     },
     Terminate {
         id: String,
@@ -96,8 +96,6 @@ async fn handle_service(cmd: ServiceCmd, ctl_client: CtlClient) -> eyre::Result<
             image,
             public,
             concurrency,
-            cpu_shares,
-            memory_limit,
         } => {
             let spec = ServiceSpec {
                 service_id: ServiceId(id),
@@ -105,8 +103,10 @@ async fn handle_service(cmd: ServiceCmd, ctl_client: CtlClient) -> eyre::Result<
                 public,
                 concurrency,
                 resource_config: ResourceConfig {
-                    cpu_shares,
-                    memory_limit: memory_limit * 1024 * 1024,
+                    // These are being ignored by the server, hence we may mock
+                    // them here.
+                    cpu_shares: 0,
+                    memory_limit: 0,
                 },
             };
             let rd = RedeploymentPolicy::None;

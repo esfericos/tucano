@@ -1,5 +1,6 @@
 use std::{collections::HashMap, future::Future, net::IpAddr, sync::Arc};
 
+use eyre::bail;
 use proto::{
     clients::WorkerClient,
     common::{
@@ -13,7 +14,7 @@ use tokio::{
     sync::{mpsc, oneshot},
     task::JoinSet,
 };
-use tracing::{debug, error, instrument, warn};
+use tracing::{debug, instrument, warn};
 use uuid::Uuid;
 
 use crate::{
@@ -34,7 +35,7 @@ pub struct Deployer {
     /// Instance state machine contexts.
     instance_statems: HashMap<InstanceId, instance::StateCtx>,
     /// Whether the deployer actor is terminating.
-    terminating: bool,
+    _terminating: bool,
 }
 
 struct DeployerHandles {
@@ -61,7 +62,7 @@ impl Deployer {
             tasks: JoinSet::new(),
             _deployment_statems: HashMap::new(),
             instance_statems: HashMap::new(),
-            terminating: false,
+            _terminating: false,
         };
         (actor, handle)
     }
@@ -73,19 +74,22 @@ impl Deployer {
                 Some(msg) = self.rx.recv() => {
                     self.handle_msg(msg).await;
                 }
+                // TODO: Implement graceful shutdown.
+                // N.B.: Don't forget to test with flavor `current-thread`.
+                //
                 // cancellation_token.cancelled() => {
                 //     self.terminating = true
                 // }
-                maybe_task_result = self.tasks.join_next() => {
-                    match maybe_task_result {
-                        Some(Ok(())) => (),
-                        Some(Err(error)) => {
-                            error!(?error, "deployer child task panicked");
-                        }
-                        None if self.terminating => break,
-                        None => (),
-                    }
-                }
+                // maybe_task_result = self.tasks.join_next() => {
+                //     match maybe_task_result {
+                //         Some(Ok(())) => (),
+                //         Some(Err(error)) => {
+                //             error!(?error, "deployer child task panicked");
+                //         }
+                //         None if self.terminating => break,
+                //         None => (),
+                //     }
+                // }
             }
         }
     }
@@ -112,6 +116,9 @@ impl Deployer {
     async fn handle_deploy_service(&mut self, spec: ServiceSpec) -> eyre::Result<DeployServiceRes> {
         debug!(?spec, "deploying service");
         let workers = self.h.worker_mgr.query_workers().await;
+        if workers.is_empty() {
+            bail!("no workers on cluster pool");
+        }
         let instances = alloc::rand_many(&workers, spec.concurrency);
         let deployment_id = DeploymentId(Uuid::now_v7());
 
@@ -149,13 +156,17 @@ impl Deployer {
         assert!(opt.is_none());
     }
 
+    #[instrument(skip_all, fields(instance_id = ?id))]
     fn trans_instance_state(&mut self, id: InstanceId, t: instance::Transition) {
         let Some(statem) = self.instance_statems.remove(&id) else {
             warn!("tried to transition nonexistent instance machine");
             return;
         };
 
+        debug!(state = ?statem.state(), "transitioned from");
         let next = instance::next(self, statem, t);
+        debug!(state = ?next.state(), "transitioned to");
+
         match next.state().kind() {
             TerminalKind::NonTerminal => {
                 self.instance_statems.insert(id, next);
