@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -51,4 +53,12 @@ pub enum PushMetricsStatus {
     /// The worker has been removed from the cluster (at some moment in the
     /// past), and this metrics call is refused.
     Removed,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct QueryWorkersReq {}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct QueryWorkersRes {
+    pub workers: Vec<IpAddr>,
 }
