@@ -1,6 +1,6 @@
 use axum::{routing::post, Router};
 
-use crate::worker_mgr::WorkerMgrHandle;
+use crate::{deployer::DeployerHandle, worker_mgr::WorkerMgrHandle};
 
 pub mod deployer;
 pub mod worker_mgr;
@@ -8,6 +8,7 @@ pub mod worker_mgr;
 #[derive(Clone)]
 pub struct HttpState {
     pub worker_mgr: WorkerMgrHandle,
+    pub deployer: DeployerHandle,
 }
 
 pub fn mk_app(state: HttpState) -> Router {

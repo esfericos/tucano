@@ -20,6 +20,6 @@ pub fn rand_many(
 }
 
 /// Randomly allocates a single instance from the provided pool of `workers`.
-pub fn rand_single(workers: &[WorkerDetails]) -> (InstanceId, IpAddr) {
+pub fn _rand_single(workers: &[WorkerDetails]) -> (InstanceId, IpAddr) {
     rand_many(workers, 1).next().unwrap()
 }

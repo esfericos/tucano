@@ -1,36 +1,40 @@
-use std::{collections::HashMap, future::Future, os::unix::net::SocketAddr, sync::Arc};
+use std::{collections::HashMap, future::Future, net::IpAddr, sync::Arc};
 
-use chrono::{DateTime, Utc};
 use proto::{
     clients::WorkerClient,
     common::{
-        instance::{InstanceId, InstanceSpec},
+        instance::{self as proto_instance, InstanceId, InstanceSpec},
         service::{ServiceId, ServiceSpec},
     },
-    ctl::deployer::DeploymentId,
+    ctl::deployer::{DeployServiceRes, DeploymentId},
 };
 use tokio::{
     select,
     sync::{mpsc, oneshot},
     task::JoinSet,
 };
-use tracing::{error, info, instrument};
+use tracing::{error, instrument, warn};
+use uuid::Uuid;
 
-use crate::{deployer::instance::Transition, worker_mgr::WorkerMgrHandle};
+use crate::{
+    deployer::instance::{TerminalKind, Transition},
+    worker_mgr::WorkerMgrHandle,
+};
 
 mod alloc;
 mod instance;
 
 pub struct Deployer {
     rx: mpsc::Receiver<Msg>,
-    tasks: JoinSet<()>,
     h: Arc<DeployerHandles>,
+    /// Set of deployer-related background-running tasks.
+    tasks: JoinSet<()>,
+    /// Pending deployment state machine contexts.
+    _deployment_statems: HashMap<DeploymentId, u8 /* todo */>,
+    /// Instance state machine contexts.
+    instance_statems: HashMap<InstanceId, instance::StateCtx>,
     /// Whether the deployer actor is terminating.
     terminating: bool,
-    // data records
-    services: HashMap<ServiceId, ServiceInfo>,
-    instances: HashMap<InstanceId, instance::State>,
-    deployments: HashMap<DeploymentId, DeploymentInfo>,
 }
 
 struct DeployerHandles {
@@ -54,15 +58,15 @@ impl Deployer {
                 worker_mgr,
                 worker_client,
             }),
-            terminating: false,
             tasks: JoinSet::new(),
-            services: HashMap::new(),
-            instances: HashMap::new(),
-            deployments: HashMap::new(),
+            _deployment_statems: HashMap::new(),
+            instance_statems: HashMap::new(),
+            terminating: false,
         };
         (actor, handle)
     }
 
+    #[allow(clippy::match_same_arms)]
     pub async fn run(mut self) {
         loop {
             select! {
@@ -86,29 +90,79 @@ impl Deployer {
         }
     }
 
+    #[instrument(skip_all)]
     async fn handle_msg(&mut self, msg: Msg) {
-        info!(?msg, "deployer msg");
         match msg {
             Msg::DeployService(spec, reply) => {
-                _ = reply.send(self.deploy_service(spec).await);
+                _ = reply.send(self.handle_deploy_service(spec).await);
             }
             Msg::TerminateService(id, reply) => {
-                _ = reply.send(self.terminate_service(id).await);
+                self.handle_terminate_service(&id);
+                _ = reply.send(Ok(()));
             }
-            Msg::InstanceTransition(_, _) => todo!(),
+            Msg::ReportInstanceStatus(id, status) => {
+                self.trans_instance_state(id, instance::Transition::Status(status));
+            }
+            Msg::InstanceTransition(id, t) => {
+                self.trans_instance_state(id, t);
+            }
         }
     }
 
-    async fn deploy_service(&mut self, spec: ServiceSpec) -> eyre::Result<()> {
+    async fn handle_deploy_service(&mut self, spec: ServiceSpec) -> eyre::Result<DeployServiceRes> {
         let workers = self.h.worker_mgr.query_workers().await;
         let instances = alloc::rand_many(&workers, spec.concurrency);
+        let deployment_id = DeploymentId(Uuid::now_v7());
 
-        for (instance, addr) in instances {}
-        Ok(())
+        let instances = instances
+            // For each allocated instance, schedule a deploy.
+            .inspect(|&(instance_id, worker_addr)| {
+                self.add_instance_init_state(instance_id, worker_addr, deployment_id);
+
+                let spec = InstanceSpec::from_service_spec_cloned(&spec, instance_id).into();
+                self.trans_instance_state(instance_id, Transition::Deploy { spec });
+            })
+            .collect();
+
+        Ok(DeployServiceRes {
+            deployment_id,
+            instances,
+        })
     }
 
-    async fn terminate_service(&mut self, id: ServiceId) -> eyre::Result<()> {
-        Ok(())
+    fn handle_terminate_service(&mut self, _id: &ServiceId) {
+        _ = self;
+    }
+
+    fn _lffg_todo_deploy_service(&mut self) {
+        _ = self;
+    }
+
+    fn add_instance_init_state(&mut self, id: InstanceId, worker_addr: IpAddr, d_id: DeploymentId) {
+        let opt = self
+            .instance_statems
+            .insert(id, instance::StateCtx::new_init(id, worker_addr, d_id));
+
+        // We have just generated a new ID (in Self::handle_deploy_service), so
+        // this case shouldn't be possible.
+        assert!(opt.is_none());
+    }
+
+    fn trans_instance_state(&mut self, id: InstanceId, t: instance::Transition) {
+        let Some(statem) = self.instance_statems.remove(&id) else {
+            warn!("tried to transition nonexistent instance machine");
+            return;
+        };
+
+        let next = instance::next(self, statem, t);
+        match next.state().kind() {
+            TerminalKind::NonTerminal => {
+                self.instance_statems.insert(id, next);
+            }
+            // If the new state is terminal, we don't need to waste memory by
+            // keeping track of it, so we don't add it again.
+            TerminalKind::SuccessfulTerminal | TerminalKind::UnsuccessfulTerminal => (),
+        }
     }
 }
 
@@ -140,7 +194,6 @@ impl Deployer {
 pub struct DeployerHandle(mpsc::Sender<Msg>);
 
 impl DeployerHandle {
-    /// Sends a message.
     async fn send(&self, msg: Msg) {
         _ = self.0.send(msg).await;
     }
@@ -154,14 +207,52 @@ impl DeployerHandle {
         self.send(f(tx)).await;
         rx.await.expect("actor must be alive")
     }
+
+    pub async fn deploy_service(&self, spec: ServiceSpec) -> eyre::Result<DeployServiceRes> {
+        self.send_wait(|r| Msg::DeployService(spec, r)).await
+    }
+
+    pub async fn terminate_service(&self, id: ServiceId) -> eyre::Result<()> {
+        self.send_wait(|r| Msg::TerminateService(id, r)).await
+    }
+
+    pub async fn report_instance_status(&self, id: InstanceId, status: proto_instance::Status) {
+        self.send(Msg::ReportInstanceStatus(id, status)).await;
+    }
 }
 
 #[derive(Debug)]
 enum Msg {
-    DeployService(ServiceSpec, oneshot::Sender<eyre::Result<()>>),
+    DeployService(ServiceSpec, oneshot::Sender<eyre::Result<DeployServiceRes>>),
     TerminateService(ServiceId, oneshot::Sender<eyre::Result<()>>),
+    ReportInstanceStatus(InstanceId, proto_instance::Status),
     // Internal messages
     InstanceTransition(InstanceId, Transition),
+}
+
+/*
+================================================================================
+(TODO: DATA RECORDS)
+
+    // data records {
+services: HashMap<ServiceId, ServiceInfo>,
+instances: HashMap<InstanceId, instance::State>,
+deployments: HashMap<DeploymentId, DeploymentInfo>,
+                    }
+
+lista de serviços rodando
+
+show (service id)
+-> instâncias rodando (e os respectivos deployments)
+ShowResponse {
+  deployments: Vec<(DeploymentId, Vec<(InstanceId, InstanceState)>)>
+}
+
+struct DeploymentStateCtx {
+    service_id: ServiceId,
+    id: DeploymentId,
+    // instance_deployment_results: Vec<_>
+    // state: State,
 }
 
 #[derive(Default)]
@@ -180,4 +271,7 @@ impl ServiceInfo {
 pub struct DeploymentInfo {
     pub id: DeploymentId,
     pub at: DateTime<Utc>,
+    pub alive_instances: InstanceId,
 }
+================================================================================
+*/
