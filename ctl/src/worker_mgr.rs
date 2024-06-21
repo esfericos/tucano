@@ -169,7 +169,6 @@ impl WorkerMgrHandle {
         self.send_wait(|r| Msg::PushMetrics(addr, metrics, r)).await
     }
 
-    #[allow(dead_code)]
     pub async fn query_workers(&self) -> Vec<WorkerDetails> {
         self.send_wait(Msg::QueryWorkers).await
     }

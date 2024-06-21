@@ -3,7 +3,7 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::common::service::{ResourceConfig, ServiceImage};
+use crate::common::service::{ResourceConfig, ServiceImage, ServiceSpec};
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct InstanceId(pub Uuid);
@@ -28,6 +28,25 @@ pub struct InstanceSpec {
     pub image: ServiceImage,
     pub public: bool,
     pub resource_config: ResourceConfig,
+}
+
+impl InstanceSpec {
+    #[must_use]
+    pub fn from_service_spec_cloned(spec: &ServiceSpec, instance_id: InstanceId) -> Self {
+        let ServiceSpec {
+            service_id: _,
+            image,
+            public,
+            concurrency: _,
+            resource_config,
+        } = spec;
+        InstanceSpec {
+            instance_id,
+            image: image.clone(),
+            public: *public,
+            resource_config: resource_config.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
