@@ -64,19 +64,18 @@ pub struct ProxyState {
 impl ProxyState {
     #[must_use]
     pub fn new() -> (Self, ProxyHandle) {
-        let map = Arc::new(RwLock::new(HashMap::default()));
-        (
-            ProxyState {
-                ports: map.clone(),
-                client: {
-                    let mut connector = HttpConnector::new();
-                    connector.set_keepalive(Some(Duration::from_secs(60)));
-                    connector.set_nodelay(true);
-                    Client::builder(TokioExecutor::new()).build::<_, Body>(connector)
-                },
+        let ports = Arc::new(RwLock::new(HashMap::default()));
+        let state = ProxyState {
+            ports: ports.clone(),
+            client: {
+                let mut connector = HttpConnector::new();
+                connector.set_keepalive(Some(Duration::from_secs(60)));
+                connector.set_nodelay(true);
+                Client::builder(TokioExecutor::new()).build::<_, Body>(connector)
             },
-            ProxyHandle { ports: map },
-        )
+        };
+        let handle = ProxyHandle { ports };
+        (state, handle)
     }
 }
 
@@ -97,7 +96,6 @@ impl ProxyHandle {
 }
 
 fn extract_instance_id(req: &mut Request) -> http::Result<InstanceId> {
-    // i'm so sorry
     let inner = req
         .headers_mut()
         .get(PROXY_INSTANCE_HEADER_NAME)

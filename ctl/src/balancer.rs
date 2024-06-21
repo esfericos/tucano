@@ -29,68 +29,6 @@ use proto::{
 use tracing::{instrument, trace, warn};
 use utils::http::{self, OptionExt as _, ResultExt as _};
 
-#[derive(Default)]
-pub struct InstanceBag {
-    pub instances: Vec<(InstanceId, IpAddr)>,
-    pub count: AtomicUsize,
-}
-
-#[derive(Clone)]
-pub struct BalancerState {
-    pub addrs: Arc<Mutex<HashMap<ServiceId, InstanceBag>>>,
-    pub client: Client<HttpConnector, Body>,
-}
-
-impl BalancerState {
-    #[must_use]
-    pub fn new() -> (Self, BalancerHandle) {
-        let map = Arc::new(Mutex::new(HashMap::default()));
-        (
-            BalancerState {
-                addrs: map.clone(),
-                client: {
-                    let mut connector = HttpConnector::new();
-                    connector.set_keepalive(Some(Duration::from_secs(60)));
-                    connector.set_nodelay(true);
-                    Client::builder(TokioExecutor::new()).build::<_, Body>(connector)
-                },
-            },
-            BalancerHandle { addrs: map },
-        )
-    }
-
-    pub fn next(&self, service: &ServiceId) -> Option<(InstanceId, IpAddr)> {
-        let map = self.addrs.lock().unwrap();
-        let bag = map.get(service)?;
-        let count = bag.count.fetch_add(1, Ordering::Relaxed);
-        Some(bag.instances[count % bag.instances.len()])
-    }
-}
-
-pub struct BalancerHandle {
-    pub addrs: Arc<Mutex<HashMap<ServiceId, InstanceBag>>>,
-}
-
-impl BalancerHandle {
-    #[allow(dead_code)]
-    pub fn add_instance(&self, id: ServiceId, instance_id: InstanceId, addr: IpAddr) {
-        let mut map = self.addrs.lock().unwrap();
-        let bag = map.entry(id).or_default();
-        bag.instances.push((instance_id, addr));
-    }
-
-    #[allow(dead_code)]
-    pub fn drop_instance(&self, id: &ServiceId, instance_id: InstanceId) {
-        let mut map = self.addrs.lock().unwrap();
-        let Some(bag) = map.get_mut(id) else {
-            warn!("attempted to drop instance from unknown service id");
-            return;
-        };
-        // Remove the instance (keep all except this one)
-        bag.instances.retain(|(inst, _)| inst != &instance_id);
-    }
-}
-
 #[instrument(skip_all)]
 pub async fn proxy(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
@@ -138,4 +76,65 @@ fn extract_service_id(req: &mut Request) -> http::Result<ServiceId> {
         .and_then(|s| s.parse().ok())
         .or_http_error(StatusCode::BAD_REQUEST, "invalid service name")?;
     Ok(ServiceId(inner))
+}
+
+#[derive(Default)]
+pub struct InstanceBag {
+    pub instances: Vec<(InstanceId, IpAddr)>,
+    pub count: AtomicUsize,
+}
+
+#[derive(Clone)]
+pub struct BalancerState {
+    pub addrs: Arc<Mutex<HashMap<ServiceId, InstanceBag>>>,
+    pub client: Client<HttpConnector, Body>,
+}
+
+impl BalancerState {
+    #[must_use]
+    pub fn new() -> (Self, BalancerHandle) {
+        let addrs = Arc::new(Mutex::new(HashMap::default()));
+        let state = BalancerState {
+            addrs: addrs.clone(),
+            client: {
+                let mut connector = HttpConnector::new();
+                connector.set_keepalive(Some(Duration::from_secs(60)));
+                connector.set_nodelay(true);
+                Client::builder(TokioExecutor::new()).build::<_, Body>(connector)
+            },
+        };
+        let handle = BalancerHandle { addrs };
+        (state, handle)
+    }
+
+    pub fn next(&self, service: &ServiceId) -> Option<(InstanceId, IpAddr)> {
+        let map = self.addrs.lock().unwrap();
+        let bag = map.get(service)?;
+        let count = bag.count.fetch_add(1, Ordering::Relaxed);
+        Some(bag.instances[count % bag.instances.len()])
+    }
+}
+
+pub struct BalancerHandle {
+    pub addrs: Arc<Mutex<HashMap<ServiceId, InstanceBag>>>,
+}
+
+impl BalancerHandle {
+    #[allow(dead_code)]
+    pub fn add_instance(&self, id: ServiceId, instance_id: InstanceId, addr: IpAddr) {
+        let mut map = self.addrs.lock().unwrap();
+        let bag = map.entry(id).or_default();
+        bag.instances.push((instance_id, addr));
+    }
+
+    #[allow(dead_code)]
+    pub fn drop_instance(&self, id: &ServiceId, instance_id: InstanceId) {
+        let mut map = self.addrs.lock().unwrap();
+        let Some(bag) = map.get_mut(id) else {
+            warn!("attempted to drop instance from unknown service id");
+            return;
+        };
+        // Remove the instance (keep all except this one)
+        bag.instances.retain(|(inst, _)| inst != &instance_id);
+    }
 }

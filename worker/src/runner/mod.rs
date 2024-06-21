@@ -20,9 +20,6 @@ use tracing::{error, trace};
 mod container_rt;
 use crate::proxy::ProxyHandle;
 
-mod handle;
-pub use handle::RunnerHandle;
-
 pub struct Runner {
     rx: mpsc::Receiver<Msg>,
     instances: HashMap<InstanceId, u16>,
@@ -77,7 +74,9 @@ impl Runner {
     }
 
     async fn deploy_instance(&mut self, spec: InstanceSpec) -> eyre::Result<()> {
-        let port = self.get_port_for_instance(spec.instance_id).await?;
+        let port = self.get_available_instance_port().await?;
+        self.add_instance(spec.instance_id, port);
+
         let rt = self.container_runtime.clone();
         let handle = self.handle.clone();
         tokio::spawn(async move {
@@ -98,8 +97,7 @@ impl Runner {
         use instance::Status::*;
         match &status {
             Started => (),
-            Terminated => self.remove_instance(instance_id),
-            Crashed { error: _ } | Killed { reason: _ } | FailedToStart { error: _ } => {
+            Terminated | Crashed { .. } | Killed { .. } | FailedToStart { .. } => {
                 self.remove_instance(instance_id);
             }
         }
@@ -113,23 +111,57 @@ impl Runner {
         });
     }
 
-    async fn get_port_for_instance(&mut self, id: InstanceId) -> eyre::Result<u16> {
+    async fn get_available_instance_port(&mut self) -> eyre::Result<u16> {
         let port = loop {
-            let port = get_port().await?;
+            let port = get_available_port().await?;
             if !self.ports.contains(&port) {
                 break port;
             }
         };
+        Ok(port)
+    }
+
+    fn add_instance(&mut self, id: InstanceId, port: u16) {
         self.instances.insert(id, port);
         self.ports.insert(port);
         self.proxy_handle.add_instance(id, port);
-        Ok(port)
     }
 
     fn remove_instance(&mut self, id: InstanceId) {
         let freed_port = self.instances.remove(&id).unwrap();
         self.ports.remove(&freed_port);
         self.proxy_handle.remove_instance(id);
+    }
+}
+
+#[derive(Clone)]
+pub struct RunnerHandle(pub mpsc::Sender<Msg>);
+
+impl RunnerHandle {
+    async fn send(&self, msg: Msg) {
+        _ = self.0.send(msg).await;
+    }
+
+    /// Sends a message and waits for a reply.
+    async fn send_wait<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(oneshot::Sender<R>) -> Msg,
+    {
+        let (tx, rx) = oneshot::channel();
+        self.send(f(tx)).await;
+        rx.await.expect("actor must be alive")
+    }
+
+    pub async fn deploy_instance(&self, spec: InstanceSpec) -> Result<(), Report> {
+        self.send_wait(|tx| Msg::DeployInstance(spec, tx)).await
+    }
+
+    pub async fn terminate_instance(&self, id: InstanceId) -> Result<(), Report> {
+        self.send_wait(|tx| Msg::TerminateInstance(id, tx)).await
+    }
+
+    pub async fn report_instance_status(&self, id: InstanceId, status: instance::Status) {
+        self.send(Msg::ReportInstanceStatus(id, status)).await;
     }
 }
 
@@ -142,7 +174,7 @@ pub enum Msg {
     ReportInstanceStatus(InstanceId, instance::Status),
 }
 
-async fn get_port() -> eyre::Result<u16> {
+async fn get_available_port() -> eyre::Result<u16> {
     let listener = TcpListener::bind(("0.0.0.0", 0))
         .await
         .wrap_err("failed to bind while deciding port")?;
