@@ -90,7 +90,7 @@ fn print_table(addrs: Vec<IpAddr>) {
         workers.push(WorkerTable {
             name: format!("worker-{}", i + 1),
             addr,
-        })
+        });
     }
     let table = Table::new(workers).to_string();
     print!("{table}");
