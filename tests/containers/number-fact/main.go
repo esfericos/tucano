@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -8,7 +9,10 @@ import (
 	"log"
 	"math/big"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -94,9 +98,36 @@ func factorHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func main() {
-	http.HandleFunc("/factors", factorHandler)
+func helloHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello, world! (responding for %v)", r.RemoteAddr)
+}
 
-	fmt.Println("Server is listening on port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+func main() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/factors", factorHandler)
+	mux.HandleFunc("/hello", helloHandler)
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		log.Fatal("must provide PORT environment variable")
+	}
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%s", port),
+		Handler: mux,
+	}
+
+	// Graceful shutdown
+	done := make(chan os.Signal)
+	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-done
+		log.Println("shutting down server...")
+		if err := srv.Shutdown(context.Background()); err != nil {
+			log.Fatal("error during shutdown", err)
+		}
+	}()
+
+	log.Printf("(%d) server listening at port %s", os.Getpid(), port)
+	srv.ListenAndServe()
 }

@@ -1,0 +1,19 @@
+services:
+  server01:
+    build: ../../containers/number-fact
+    hostname: html1
+    networks:
+      - tucano-cluster-net
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: "512MB"
+
+networks:
+  tucano-cluster-net:
+    attachable: true
