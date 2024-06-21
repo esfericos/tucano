@@ -14,8 +14,10 @@ pub fn rand_many(
     workers: &[WorkerDetails],
     instances: u32,
 ) -> impl Iterator<Item = (InstanceId, IpAddr)> + '_ {
-    workers
-        .choose_multiple(&mut rand::thread_rng(), instances as usize)
+    let mut rng = rand::thread_rng();
+    (0..instances)
+        // Unwrap is safe since an eventual 0..0 wouldn't yield any iterations.
+        .map(move |_| workers.choose(&mut rng).unwrap())
         .map(|w| (InstanceId(Uuid::now_v7()), w.addr))
 }
 
