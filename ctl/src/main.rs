@@ -10,14 +10,10 @@ use tokio::task::JoinSet;
 use tracing::info;
 use utils::server::mk_listener;
 
-use crate::{
-    args::CtlArgs, balancer::BalancerState, discovery::Discovery, http::HttpState,
-    worker_mgr::WorkerMgr,
-};
+use crate::{args::CtlArgs, balancer::BalancerState, http::HttpState, worker_mgr::WorkerMgr};
 
 mod args;
-mod balancer;
-mod discovery;
+mod balancer
 mod http;
 mod worker_mgr;
 
@@ -35,11 +31,6 @@ async fn main() -> eyre::Result<()> {
 
     let mut bag = JoinSet::new();
 
-    let (discovery, discovery_handle) = Discovery::new();
-    bag.spawn(async move {
-        discovery.run().await;
-    });
-
     let (worker_mgr, worker_mgr_handle) = WorkerMgr::new(args.worker_liveness_timeout);
     bag.spawn(async move {
         worker_mgr.run().await;
@@ -56,7 +47,6 @@ async fn main() -> eyre::Result<()> {
 
     bag.spawn(async move {
         let state = HttpState {
-            discovery: discovery_handle,
             worker_mgr: worker_mgr_handle,
         };
         let app = http::mk_app(state).into_make_service_with_connect_info::<SocketAddr>();

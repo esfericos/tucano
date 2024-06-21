@@ -7,10 +7,9 @@ use proto::ctl::deployer::{
 use crate::http::HttpState;
 
 pub async fn report_instance_status(
-    State(state): State<HttpState>,
+    State(_state): State<HttpState>,
     Json(_payload): Json<ReportDeployInstanceStatusReq>,
 ) -> Json<ReportDeployInstanceStatusRes> {
-    _ = state.discovery;
     todo!();
 }
 
