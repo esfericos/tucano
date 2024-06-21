@@ -35,8 +35,6 @@ async fn main() -> eyre::Result<()> {
 
     let worker_client = WorkerClient::new();
 
-    let worker_client = WorkerClient::new();
-
     let balancer_listener = mk_listener(ANY_IP, CTL_BALANCER_PORT).await?;
     let http_listener = mk_listener(ANY_IP, CTL_HTTP_PORT).await?;
 
