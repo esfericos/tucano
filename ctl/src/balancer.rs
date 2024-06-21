@@ -36,6 +36,7 @@ pub async fn proxy(
     mut req: Request,
 ) -> http::Result<impl IntoResponse> {
     let service_id = extract_service_id(&mut req)?;
+    trace!(%service_id, "got request");
 
     let (instance_id, server_addr) = balancer
         .next(&service_id)
@@ -67,15 +68,18 @@ pub async fn proxy(
 }
 
 fn extract_service_id(req: &mut Request) -> http::Result<ServiceId> {
-    let inner = req
+    let host = req
         .headers()
         .get("Host")
         .unwrap()
         .to_str()
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .or_http_error(StatusCode::BAD_REQUEST, "invalid service name")?;
-    Ok(ServiceId(inner))
+        .http_error(StatusCode::BAD_REQUEST, "invalid service name")?;
+    let service_id = match host.split_once(':') {
+        Some((prefix, _suffix)) => prefix,
+        None => host,
+    };
+    trace!("parsed service id {host} (as)=> {service_id}");
+    Ok(ServiceId(service_id.to_string()))
 }
 
 #[derive(Default)]
