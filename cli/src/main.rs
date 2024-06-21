@@ -2,8 +2,8 @@ use std::net::IpAddr;
 
 use clap::{Parser, Subcommand};
 use eyre::Ok;
-use prettytable::{cell::Cell, row::Row, Table};
 use proto::clients::CtlClient;
+use tabled::{self, Table, Tabled};
 
 #[derive(Debug, Parser)]
 pub struct Cli {
@@ -78,13 +78,20 @@ fn handle_service(cmd: &ServiceCmd) -> eyre::Result<()> {
     }
 }
 
-fn print_table(workers: Vec<IpAddr>) {
-    let mut table = Table::new();
-    for (i, addr) in workers.into_iter().enumerate() {
-        table.add_row(Row::new(vec![
-            Cell::new(format!("worker_{i}").as_str()),
-            Cell::new(format!("{addr}").as_str()),
-        ]));
+fn print_table(addrs: Vec<IpAddr>) {
+    #[derive(Tabled)]
+    pub struct WorkerTable {
+        name: String,
+        addr: IpAddr,
     }
-    table.printstd();
+
+    let mut workers: Vec<WorkerTable> = Vec::new();
+    for (i, addr) in addrs.into_iter().enumerate() {
+        workers.push(WorkerTable {
+            name: format!("worker-{}", i + 1),
+            addr,
+        })
+    }
+    let table = Table::new(workers).to_string();
+    print!("{table}");
 }

@@ -1,11 +1,11 @@
-use std::net::{IpAddr, SocketAddr};
+use std::net::SocketAddr;
 
 use axum::{
     extract::{ConnectInfo, State},
     Json,
 };
 use proto::ctl::worker::{
-    ByeReq, ByeRes, HelloReq, HelloRes, PushWorkerMetricsReq, PushWorkerMetricsRes,
+    ByeReq, ByeRes, HelloReq, HelloRes, PushWorkerMetricsReq, PushWorkerMetricsRes, QueryWorkersRes,
 };
 
 use crate::http::HttpState;
@@ -43,8 +43,8 @@ pub async fn push_metrics(
     Json(PushWorkerMetricsRes { status })
 }
 
-pub async fn query_workers(State(state): State<HttpState>) -> Json<Vec<IpAddr>> {
+pub async fn query_workers(State(state): State<HttpState>) -> Json<QueryWorkersRes> {
     let workers = state.worker_mgr.query_workers().await;
-    let worker_addrs = workers.into_iter().map(|w| w.addr).collect();
-    Json(worker_addrs)
+    let workers = workers.into_iter().map(|w| w.addr).collect();
+    Json(QueryWorkersRes { workers })
 }
