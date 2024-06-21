@@ -106,7 +106,7 @@ async fn handle_service(cmd: ServiceCmd, ctl_client: CtlClient) -> eyre::Result<
                 concurrency,
                 resource_config: ResourceConfig {
                     cpu_shares,
-                    memory_limit,
+                    memory_limit: memory_limit * 1024 * 1024,
                 },
             };
             let rd = RedeploymentPolicy::None;

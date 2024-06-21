@@ -121,7 +121,7 @@ impl ContainerRuntime {
 
         let options = Some(CreateContainerOptions {
             name,
-            platform: Some("linux/x86_64".to_string()),
+            platform: None,
         });
         let create_response = self.docker.create_container(options, config).await?;
 
