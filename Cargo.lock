@@ -387,6 +387,7 @@ dependencies = [
  "chrono",
  "clap",
  "eyre",
+ "hyper-util",
  "proto",
  "tokio",
  "tracing",
