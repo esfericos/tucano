@@ -1,4 +1,4 @@
-use std::{collections::HashMap, net::IpAddr};
+use std::{collections::HashMap, fmt, net::IpAddr};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -13,6 +13,12 @@ pub struct RevisionId(pub Uuid);
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
 pub struct DeploymentId(pub Uuid);
+
+impl fmt::Display for DeploymentId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 /// Starts a new deploy in the system.
 #[derive(Debug, Serialize, Deserialize)]

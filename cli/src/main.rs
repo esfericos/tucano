@@ -1,8 +1,11 @@
 use std::net::IpAddr;
 
 use clap::{Parser, Subcommand};
-use eyre::Ok;
-use proto::clients::CtlClient;
+use proto::{
+    clients::CtlClient,
+    common::service::{ResourceConfig, ServiceId, ServiceImage, ServiceSpec},
+    ctl::deployer::RedeploymentPolicy,
+};
 use tabled::{self, Table, Tabled};
 
 #[derive(Debug, Parser)]
@@ -39,25 +42,40 @@ pub enum WorkerCmd {
 #[derive(Debug, Subcommand)]
 pub enum ServiceCmd {
     List,
-    Show { id: String },
-    Deploy { id: String, image: String },
-    Terminate { id: String },
+    Show {
+        id: String,
+    },
+    Deploy {
+        #[arg(long)]
+        id: String,
+        #[arg(long)]
+        image: String,
+        #[arg(long)]
+        public: bool,
+        #[arg(long)]
+        concurrency: u32,
+        #[arg(long)]
+        cpu_shares: i64,
+        #[arg(long)]
+        memory_limit: i64,
+    },
+    Terminate {
+        id: String,
+    },
 }
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     let cli = Cli::parse();
     let ctl_client = CtlClient::new(cli.ctl_addr);
-
     match cli.cmd {
-        Cmd::Node(cmd) => handle_node(&cmd, ctl_client).await?,
-        Cmd::Service(cmd) => handle_service(&cmd)?,
+        Cmd::Node(cmd) => handle_node(cmd, ctl_client).await?,
+        Cmd::Service(cmd) => handle_service(cmd, ctl_client).await?,
     }
-
     Ok(())
 }
 
-async fn handle_node(cmd: &NodeCmd, ctl_client: CtlClient) -> eyre::Result<()> {
+async fn handle_node(cmd: NodeCmd, ctl_client: CtlClient) -> eyre::Result<()> {
     match cmd {
         NodeCmd::List => {
             let workers = ctl_client.query_workers().await.unwrap().workers;
@@ -69,11 +87,33 @@ async fn handle_node(cmd: &NodeCmd, ctl_client: CtlClient) -> eyre::Result<()> {
     }
 }
 
-fn handle_service(cmd: &ServiceCmd) -> eyre::Result<()> {
+async fn handle_service(cmd: ServiceCmd, ctl_client: CtlClient) -> eyre::Result<()> {
     match cmd {
         ServiceCmd::List => todo!(),
         ServiceCmd::Show { .. } => todo!(),
-        ServiceCmd::Deploy { .. } => todo!(),
+        ServiceCmd::Deploy {
+            id,
+            image,
+            public,
+            concurrency,
+            cpu_shares,
+            memory_limit,
+        } => {
+            let spec = ServiceSpec {
+                service_id: ServiceId(id),
+                image: ServiceImage(image),
+                public,
+                concurrency,
+                resource_config: ResourceConfig {
+                    cpu_shares,
+                    memory_limit: memory_limit * 1024 * 1024,
+                },
+            };
+            let rd = RedeploymentPolicy::None;
+            let res = ctl_client.deploy_service(spec, rd).await?;
+            println!("Successfully deployed service #{}", res.deployment_id);
+            Ok(())
+        }
         ServiceCmd::Terminate { .. } => todo!(),
     }
 }

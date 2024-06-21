@@ -13,7 +13,7 @@ use tokio::{
     sync::{mpsc, oneshot},
     task::JoinSet,
 };
-use tracing::{error, instrument, warn};
+use tracing::{debug, error, instrument, warn};
 use uuid::Uuid;
 
 use crate::{
@@ -110,6 +110,7 @@ impl Deployer {
     }
 
     async fn handle_deploy_service(&mut self, spec: ServiceSpec) -> eyre::Result<DeployServiceRes> {
+        debug!(?spec, "deploying service");
         let workers = self.h.worker_mgr.query_workers().await;
         let instances = alloc::rand_many(&workers, spec.concurrency);
         let deployment_id = DeploymentId(Uuid::now_v7());
