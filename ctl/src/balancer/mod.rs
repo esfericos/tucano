@@ -24,8 +24,9 @@ use hyper_util::{
 };
 use proto::{
     common::{instance::InstanceId, service::ServiceId},
-    well_known::{PROXY_FORWARDED_HEADER_NAME, PROXY_INSTANCE_HEADER_NAME},
+    well_known::{PROXY_FORWARDED_HEADER_NAME, PROXY_INSTANCE_HEADER_NAME, WORKER_PROXY_PORT},
 };
+use tracing::{instrument, trace, warn};
 use utils::http::{self, OptionExt as _, ResultExt as _};
 
 #[derive(Default)]
@@ -58,11 +59,11 @@ impl BalancerState {
         )
     }
 
-    pub fn next(&self, service: &ServiceId) -> (InstanceId, IpAddr) {
+    pub fn next(&self, service: &ServiceId) -> Option<(InstanceId, IpAddr)> {
         let map = self.addrs.lock().unwrap();
-        let bag = map.get(service).unwrap();
+        let bag = map.get(service)?;
         let count = bag.count.fetch_add(1, Ordering::Relaxed);
-        bag.instances[count % bag.instances.len()]
+        Some(bag.instances[count % bag.instances.len()])
     }
 }
 
@@ -72,43 +73,48 @@ pub struct BalancerHandle {
 
 impl BalancerHandle {
     #[allow(dead_code)]
-    pub fn add_instance(&mut self, id: ServiceId, at: (InstanceId, IpAddr)) {
+    pub fn add_instance(&self, id: ServiceId, instance_id: InstanceId, addr: IpAddr) {
         let mut map = self.addrs.lock().unwrap();
         let bag = map.entry(id).or_default();
-        bag.instances.push(at);
+        bag.instances.push((instance_id, addr));
     }
 
     #[allow(dead_code)]
-    pub fn drop_instance(&mut self, id: &ServiceId, at: (InstanceId, IpAddr)) {
+    pub fn drop_instance(&self, id: &ServiceId, instance_id: InstanceId) {
         let mut map = self.addrs.lock().unwrap();
         let Some(bag) = map.get_mut(id) else {
+            warn!("attempted to drop instance from unknown service id");
             return;
         };
-        bag.instances
-            .retain(|(inst, addr)| inst == &at.0 && addr == &at.1);
+        // Remove the instance (keep all except this one)
+        bag.instances.retain(|(inst, _)| inst != &instance_id);
     }
 }
 
+#[instrument(skip_all)]
 pub async fn proxy(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     State(balancer): State<BalancerState>,
     mut req: Request,
 ) -> http::Result<impl IntoResponse> {
-    let service = extract_service_id(&mut req)?;
+    let service_id = extract_service_id(&mut req)?;
 
-    let (instance, server_addr) = balancer.next(&service);
+    let (instance_id, server_addr) = balancer
+        .next(&service_id)
+        .or_http_error(StatusCode::NOT_FOUND, "service not found")?;
+    trace!(%service_id, %instance_id, %server_addr, "received and balanced user request");
 
     *req.uri_mut() = {
         let uri = req.uri();
         let mut parts = uri.clone().into_parts();
-        parts.authority = Authority::from_str(&server_addr.to_string()).ok();
+        parts.authority = Authority::from_str(&format!("{server_addr}:{WORKER_PROXY_PORT}")).ok();
         parts.scheme = Some(Scheme::HTTP);
         Uri::from_parts(parts).unwrap()
     };
 
     req.headers_mut().insert(
         PROXY_INSTANCE_HEADER_NAME,
-        HeaderValue::from_str(&instance.to_string()).unwrap(),
+        HeaderValue::from_str(&instance_id.to_string()).unwrap(),
     );
     req.headers_mut().insert(
         PROXY_FORWARDED_HEADER_NAME,

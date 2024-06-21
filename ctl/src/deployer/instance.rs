@@ -1,12 +1,15 @@
-use std::net::IpAddr;
+use std::{net::IpAddr, sync::Arc};
 
 use proto::{
-    common::instance::{self, InstanceId, InstanceSpec},
+    common::{
+        instance::{self, InstanceId, InstanceSpec},
+        service::ServiceId,
+    },
     ctl::deployer::DeploymentId,
     well_known::{MAX_INSTANCE_DEPLOY_RETRIES, MAX_INSTANCE_TERMINATION_RETRIES},
     worker::runner::{DeployInstanceRes, TerminateInstanceRes},
 };
-use tracing::{instrument, warn};
+use tracing::{instrument, trace, warn};
 use utils::fmt::ElideDebug;
 
 use crate::deployer::Deployer;
@@ -48,7 +51,7 @@ pub fn next(d: &mut Deployer, current: StateCtx, t: Transition) -> StateCtx {
         }
 
         (Deploying { .. }, t::Status(s::Started)) => {
-            //
+            propagate_to_balancer(d, &current, Balancer::Include);
             current.trans_into(Started)
         }
 
@@ -77,20 +80,24 @@ pub fn next(d: &mut Deployer, current: StateCtx, t: Transition) -> StateCtx {
 
         (Started, t::Status(s::Terminated { .. })) => {
             warn!("instance unexpectedly terminated");
+            propagate_to_balancer(d, &current, Balancer::Remove);
             current.trans_into(UnexpectedTerminated)
         }
 
         (Started, t::Status(s::Crashed { .. })) => {
             warn!("instance unexpectedly crashed");
+            propagate_to_balancer(d, &current, Balancer::Remove);
             current.trans_into(UnexpectedCrashed)
         }
 
         (Started, t::Status(s::Killed { .. })) => {
             warn!("instance was killed");
+            propagate_to_balancer(d, &current, Balancer::Remove);
             current.trans_into(UnexpectedCrashed)
         }
 
         (Started, t::Terminate) => {
+            propagate_to_balancer(d, &current, Balancer::Remove);
             schedule_instance_termination(d, &current);
             current.trans_into(Terminating {
                 attempt: INITIAL_ATTEMPT,
@@ -127,16 +134,23 @@ pub struct StateCtx {
     id: InstanceId,
     /// The address of the worker in which this instance lives.
     worker_addr: IpAddr,
+    service_id: Arc<ServiceId>,
     deployment_id: DeploymentId,
 }
 
 impl StateCtx {
-    pub fn new_init(id: InstanceId, worker_addr: IpAddr, deployment_id: DeploymentId) -> Self {
+    pub fn new_init(
+        id: InstanceId,
+        worker_addr: IpAddr,
+        deployment_id: DeploymentId,
+        service_id: Arc<ServiceId>,
+    ) -> Self {
         StateCtx {
             state: State::Init,
             id,
             worker_addr,
             deployment_id,
+            service_id,
         }
     }
 
@@ -282,5 +296,21 @@ fn schedule_instance_termination_reattempt(
         })
     } else {
         current.trans_into(State::FailedToTerminate)
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+enum Balancer {
+    Include,
+    Remove,
+}
+
+fn propagate_to_balancer(d: &mut Deployer, ctx: &StateCtx, action: Balancer) {
+    trace!(?action, "propagating changes to balancer");
+    let s_id = ctx.service_id.as_ref().clone();
+    let addr = ctx.worker_addr;
+    match action {
+        Balancer::Include => d.h.balancer.add_instance(s_id, ctx.id, addr),
+        Balancer::Remove => d.h.balancer.drop_instance(&s_id, ctx.id),
     }
 }

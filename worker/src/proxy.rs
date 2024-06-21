@@ -21,17 +21,20 @@ use hyper_util::{
 };
 use proto::{common::instance::InstanceId, well_known::PROXY_INSTANCE_HEADER_NAME};
 use reqwest::StatusCode;
+use tracing::{instrument, trace};
 use utils::http::{self, OptionExt as _, ResultExt as _};
 
+#[instrument(skip_all)]
 pub async fn proxy(
     State(proxy): State<ProxyState>,
     mut req: Request,
 ) -> http::Result<impl IntoResponse> {
-    let id = extract_instance_id(&mut req)?;
+    let instance_id = extract_instance_id(&mut req)?;
+    trace!(%instance_id, "received user request");
 
     let maybe_port = {
         let read_map = proxy.ports.read().unwrap();
-        read_map.get(&id).copied()
+        read_map.get(&instance_id).copied()
     };
     let port = maybe_port
         .ok_or_else(|| eyre::eyre!("requested instance doesn't exist at requested worker"))
@@ -97,7 +100,7 @@ fn extract_instance_id(req: &mut Request) -> http::Result<InstanceId> {
     // i'm so sorry
     let inner = req
         .headers_mut()
-        .remove(PROXY_INSTANCE_HEADER_NAME)
+        .get(PROXY_INSTANCE_HEADER_NAME)
         .or_http_error(StatusCode::BAD_REQUEST, "missing instance id from gw")?
         .to_str()
         .ok()

@@ -4,13 +4,13 @@ use chrono::Utc;
 use eyre::Context as _;
 use proto::{clients::CtlClient, ctl::worker::PushMetricsStatus};
 use tokio::time::sleep;
-use tracing::{debug, error};
+use tracing::{error, trace};
 
 use crate::{args::WorkerArgs, monitor::collector::MetricsCollector};
 
 pub async fn start_pusher(args: Arc<WorkerArgs>, ctl_client: CtlClient) -> eyre::Result<()> {
     let mut metrics_report: MetricsCollector = MetricsCollector::new();
-    debug!("pusher started");
+    trace!("pusher started");
 
     // Try to join the cluster
     ctl_client
@@ -19,7 +19,7 @@ pub async fn start_pusher(args: Arc<WorkerArgs>, ctl_client: CtlClient) -> eyre:
         .wrap_err("worker failed to join the cluster")?;
 
     loop {
-        debug!("sending metrics");
+        trace!("sending metrics");
         let metrics = metrics_report.get_metrics();
         let now = Utc::now();
 

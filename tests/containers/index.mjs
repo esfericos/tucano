@@ -3,8 +3,9 @@
 import { createServer } from "node:http";
 
 const server = createServer((req, res) => {
-  const fwd = req.headers["X-Tuc-Fwd-For"] || "<no `X-Tuc-Fwd-For`>";
-  res.end(`hello, world! (fwd by ${fwd})`);
+  const fwd = req.headers["x-tuc-fwd-for"] || "no X-Tuc-Fwd-For";
+  const inst = req.headers["x-tuc-inst"] || "no X-Tuc-Inst";
+  res.end(`hello, world! (fwd by <${fwd}>) (inst <${inst}>)`);
 });
 
 const port = process.env.PORT;

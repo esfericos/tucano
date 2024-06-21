@@ -1,3 +1,5 @@
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 
 /// The service ID (i.e., its name).
@@ -5,6 +7,12 @@ use serde::{Deserialize, Serialize};
 /// Is unique in the cluster.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct ServiceId(pub String);
+
+impl fmt::Display for ServiceId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 /// The service image.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]

@@ -14,10 +14,11 @@ use tokio::{
     sync::{mpsc, oneshot},
     task::JoinSet,
 };
-use tracing::{debug, instrument, warn};
+use tracing::{instrument, trace, warn};
 use uuid::Uuid;
 
 use crate::{
+    balancer::BalancerHandle,
     deployer::instance::{TerminalKind, Transition},
     worker_mgr::WorkerMgrHandle,
 };
@@ -40,6 +41,7 @@ pub struct Deployer {
 
 struct DeployerHandles {
     deployer_handle: DeployerHandle,
+    balancer: BalancerHandle,
     worker_mgr: WorkerMgrHandle,
     worker_client: WorkerClient,
 }
@@ -47,6 +49,7 @@ struct DeployerHandles {
 impl Deployer {
     #[must_use]
     pub fn new(
+        balancer: BalancerHandle,
         worker_mgr: WorkerMgrHandle,
         worker_client: WorkerClient,
     ) -> (Deployer, DeployerHandle) {
@@ -56,6 +59,7 @@ impl Deployer {
             rx,
             h: Arc::new(DeployerHandles {
                 deployer_handle: handle.clone(),
+                balancer,
                 worker_mgr,
                 worker_client,
             }),
@@ -114,18 +118,24 @@ impl Deployer {
     }
 
     async fn handle_deploy_service(&mut self, spec: ServiceSpec) -> eyre::Result<DeployServiceRes> {
-        debug!(?spec, "deploying service");
+        trace!(?spec, "deploying service");
         let workers = self.h.worker_mgr.query_workers().await;
         if workers.is_empty() {
             bail!("no workers on cluster pool");
         }
         let instances = alloc::rand_many(&workers, spec.concurrency);
         let deployment_id = DeploymentId(Uuid::now_v7());
+        let service_id = Arc::new(spec.service_id.clone());
 
         let instances = instances
             // For each allocated instance, schedule a deploy.
             .inspect(|&(instance_id, worker_addr)| {
-                self.add_instance_init_state(instance_id, worker_addr, deployment_id);
+                self.add_instance_init_state(
+                    instance_id,
+                    worker_addr,
+                    deployment_id,
+                    service_id.clone(),
+                );
 
                 let spec = InstanceSpec::from_service_spec_cloned(&spec, instance_id).into();
                 self.trans_instance_state(instance_id, Transition::Deploy { spec });
@@ -146,10 +156,15 @@ impl Deployer {
         _ = self;
     }
 
-    fn add_instance_init_state(&mut self, id: InstanceId, worker_addr: IpAddr, d_id: DeploymentId) {
-        let opt = self
-            .instance_statems
-            .insert(id, instance::StateCtx::new_init(id, worker_addr, d_id));
+    fn add_instance_init_state(
+        &mut self,
+        id: InstanceId,
+        worker_addr: IpAddr,
+        d_id: DeploymentId,
+        s_id: Arc<ServiceId>,
+    ) {
+        let s = instance::StateCtx::new_init(id, worker_addr, d_id, s_id);
+        let opt = self.instance_statems.insert(id, s);
 
         // We have just generated a new ID (in Self::handle_deploy_service), so
         // this case shouldn't be possible.
@@ -163,9 +178,9 @@ impl Deployer {
             return;
         };
 
-        debug!(state = ?statem.state(), "transitioned from");
+        trace!(state = ?statem.state(), "transitioned from");
         let next = instance::next(self, statem, t);
-        debug!(state = ?next.state(), "transitioned to");
+        trace!(state = ?next.state(), "transitioned to");
 
         match next.state().kind() {
             TerminalKind::NonTerminal => {

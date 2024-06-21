@@ -15,7 +15,7 @@ use tokio::{
     sync::{mpsc, oneshot},
     task,
 };
-use tracing::{debug, error};
+use tracing::{error, trace};
 
 mod container_rt;
 use crate::proxy::ProxyHandle;
@@ -106,7 +106,7 @@ impl Runner {
 
         let ctl_client = self.ctl_client.clone();
         tokio::spawn(async move {
-            debug!(?instance_id, ?status, "reporting status");
+            trace!(?instance_id, ?status, "reporting status");
             if let Err(error) = ctl_client.report_instance_status(instance_id, status).await {
                 error!(?error, "failed to report instance status");
             }

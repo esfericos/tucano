@@ -58,23 +58,27 @@ impl WorkerMgr {
         }
     }
 
+    #[instrument(skip_all)]
     async fn handle_msg(&mut self, msg: Msg) {
-        trace!(?msg, "got msg");
         match msg {
-            Msg::Hello(addr, reply) => {
-                _ = reply.send(self.handle_hello(addr));
+            Msg::Hello(worker_addr, reply) => {
+                trace!(?worker_addr, "got hello");
+                _ = reply.send(self.handle_hello(worker_addr));
             }
-            Msg::Bye(addr) => {
-                self.handle_bye(addr);
+            Msg::Bye(worker_addr) => {
+                trace!(?worker_addr, "got bye");
+                self.handle_bye(worker_addr);
             }
-            Msg::PushMetrics(a, m, reply) => {
-                _ = reply.send(self.handle_push_metrics(a, m));
+            Msg::PushMetrics(worker_addr, m, reply) => {
+                trace!(?worker_addr, "got metrics");
+                _ = reply.send(self.handle_push_metrics(worker_addr, m));
             }
             Msg::QueryWorkers(reply) => {
                 let workers = self.workers.values().cloned().collect();
                 _ = reply.send(workers);
             }
             Msg::Tick(instant) => {
+                trace!("got tick");
                 self.handle_tick(instant).await;
             }
         }

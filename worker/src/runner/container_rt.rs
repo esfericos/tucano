@@ -14,7 +14,7 @@ use proto::{
     common::instance::{InstanceId, InstanceSpec, Status},
     well_known::GRACEFUL_SHUTDOWN_DEADLINE,
 };
-use tracing::{debug, error, instrument};
+use tracing::{error, instrument, trace};
 
 use super::RunnerHandle;
 
@@ -36,7 +36,7 @@ impl ContainerRuntime {
         handle: RunnerHandle,
     ) {
         let container_name = Self::create_container_name(spec.instance_id);
-        debug!(?spec, container_name, "running instance lifecycle");
+        trace!(?spec, container_name, "running instance lifecycle");
 
         if let Err(error) = self
             .create_and_run(&spec, port, container_name.clone())
@@ -51,7 +51,7 @@ impl ContainerRuntime {
         }
 
         // TODO: Add health check to verify whether the service is running
-        debug!("container running");
+        trace!("container running");
         handle
             .report_instance_status(spec.instance_id, Status::Started)
             .await;
@@ -62,7 +62,7 @@ impl ContainerRuntime {
             .expect("infallible operation")
         {
             ExitStatus::Terminated => {
-                debug!("container terminated");
+                trace!("container terminated");
                 handle
                     .report_instance_status(spec.instance_id, Status::Terminated)
                     .await;
@@ -102,10 +102,10 @@ impl ContainerRuntime {
         name: String,
     ) -> eyre::Result<()> {
         let create_response = self.create_container(spec, port, name.clone()).await?;
-        debug!("successfully `create` operation");
+        trace!("successfully `create` operation");
 
         self.run_container(create_response).await?;
-        debug!("successfully `run` operation");
+        trace!("successfully `run` operation");
 
         Ok(())
     }

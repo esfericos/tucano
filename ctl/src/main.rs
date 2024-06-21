@@ -45,7 +45,7 @@ async fn main() -> eyre::Result<()> {
         worker_mgr.run().await;
     });
 
-    let (balancer, _balancer_handle) = BalancerState::new();
+    let (balancer, balancer_handle) = BalancerState::new();
     bag.spawn(async move {
         let app = balancer::proxy
             .with_state(balancer)
@@ -54,7 +54,8 @@ async fn main() -> eyre::Result<()> {
         axum::serve(balancer_listener, app).await.unwrap();
     });
 
-    let (deployer, deployer_handle) = Deployer::new(worker_mgr_handle.clone(), worker_client);
+    let (deployer, deployer_handle) =
+        Deployer::new(balancer_handle, worker_mgr_handle.clone(), worker_client);
     bag.spawn(async move {
         deployer.run().await;
     });
