@@ -47,6 +47,8 @@
             llvmPackages_16.llvm
             llvmPackages_16.bintools
             libiconv
+
+            k6
           ];
           darwinPackages = lib.optionals isDarwin (with pkgs.darwin.apple_sdk.frameworks; [
             CoreFoundation

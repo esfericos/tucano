@@ -1,4 +1,4 @@
-use std::{net::IpAddr, time::Duration};
+use std::time::Duration;
 
 use clap::Parser;
 
@@ -6,7 +6,7 @@ use clap::Parser;
 pub struct WorkerArgs {
     /// Controller's HTTP address.
     #[arg(short, long)]
-    pub ctl_addr: IpAddr,
+    pub ctl_addr: String,
 
     /// Interval at which metrics are pushed to the controller.
     ///
