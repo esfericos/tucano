@@ -13,7 +13,7 @@ pub struct Cli {
     #[command(subcommand)]
     cmd: Cmd,
     #[arg(short, long)]
-    ctl_addr: IpAddr,
+    ctl_addr: String,
 }
 
 #[derive(Debug, Subcommand)]
@@ -67,7 +67,7 @@ pub enum ServiceCmd {
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     let cli = Cli::parse();
-    let ctl_client = CtlClient::new(cli.ctl_addr);
+    let ctl_client = CtlClient::new(&cli.ctl_addr);
     match cli.cmd {
         Cmd::Node(cmd) => handle_node(cmd, ctl_client).await?,
         Cmd::Service(cmd) => handle_service(cmd, ctl_client).await?,

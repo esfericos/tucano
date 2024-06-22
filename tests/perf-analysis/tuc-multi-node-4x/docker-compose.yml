@@ -1,0 +1,51 @@
+services:
+  ctl:
+    build:
+      context: ../../.. # repo root
+      dockerfile: ./dockerfiles/node.dockerfile
+      args:
+        CRATE: ctl
+    entrypoint:
+      - /usr/local/bin/ctl
+    networks: [tucano-cluster-net]
+    ports:
+      - "8080:8080" # balancer
+      - "7070:7070" # http
+    environment:
+      RUST_LOG: info,ctl=trace
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: "512MB"
+
+  worker1: &w1
+    depends_on: [ctl]
+    build:
+      context: ../../.. # repo root
+      dockerfile: ./dockerfiles/node.dockerfile
+      args:
+        CRATE: worker
+    entrypoint:
+      - /usr/local/bin/worker
+      - -c=ctl
+    networks:
+      - tucano-cluster-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      RUST_LOG: info,worker=trace
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: "512MB"
+
+  worker2:
+    <<: *w1
+  worker3:
+    <<: *w1
+
+networks:
+  tucano-cluster-net:
+    attachable: true
