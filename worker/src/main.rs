@@ -34,7 +34,7 @@ async fn main() -> Result<()> {
     let args = Arc::new(WorkerArgs::parse());
     info!(?args, "started worker");
 
-    let ctl_client = CtlClient::new(args.ctl_addr);
+    let ctl_client = CtlClient::new(&args.ctl_addr);
 
     let proxy_listener = mk_listener(ANY_IP, WORKER_PROXY_PORT).await?;
     let http_listener = mk_listener(ANY_IP, WORKER_HTTP_PORT).await?;

@@ -1,7 +1,6 @@
 services:
   server01:
     build: ../../containers/number-fact
-    hostname: html1
     networks:
       - tucano-cluster-net
     ports:
