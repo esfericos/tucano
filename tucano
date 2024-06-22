@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-cargo build -q
+cargo build
 ./target/debug/cli "$@"

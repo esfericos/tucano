@@ -1,4 +1,4 @@
-use std::{net::IpAddr, sync::Arc};
+use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 
@@ -30,7 +30,7 @@ pub struct CtlClient {
 
 impl CtlClient {
     #[must_use]
-    pub fn new(ctl_addr: IpAddr) -> Self {
+    pub fn new(ctl_addr: &str) -> Self {
         let base_url = format!("http://{ctl_addr}:{CTL_HTTP_PORT}")
             .into_boxed_str()
             .into();
