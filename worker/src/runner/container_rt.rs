@@ -190,7 +190,6 @@ impl ContainerRuntime {
             )])),
             env: Some(vec![format!("PORT={port}"), format!("HOST={HOST}")]),
             host_config: Some(HostConfig {
-                network_mode: Some("host".into()),
                 auto_remove: Some(true),
                 // FIXME: These aren't working right now.
                 //
