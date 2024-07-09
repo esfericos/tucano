@@ -8,6 +8,15 @@ pub struct WorkerArgs {
     #[arg(short, long)]
     pub ctl_addr: String,
 
+    /// Whether the worker should run in a Docker-networking aware context.
+    ///
+    /// If set, must specify the name of the Docker network.
+    ///
+    /// In general, this option is desirable when executing all Tucano nodes
+    /// in a single host via Docker containers.
+    #[arg(long)]
+    pub use_docker_network: Option<String>,
+
     /// Interval at which metrics are pushed to the controller.
     ///
     /// Notice that this interval MUST be smaller than the value configured for

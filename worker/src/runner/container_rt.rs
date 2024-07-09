@@ -17,6 +17,7 @@ use proto::{
 use tracing::{error, instrument, trace};
 
 use super::RunnerHandle;
+use crate::args::WorkerArgs;
 
 #[derive(Clone)]
 pub struct ContainerRuntime {
@@ -31,6 +32,7 @@ impl ContainerRuntime {
     #[instrument(skip_all, fields(instance_id = ?spec.instance_id))]
     pub async fn run_instance_lifecycle(
         &self,
+        args: Arc<WorkerArgs>,
         spec: InstanceSpec,
         port: u16,
         handle: RunnerHandle,
@@ -39,7 +41,7 @@ impl ContainerRuntime {
         trace!(?spec, container_name, "running instance lifecycle");
 
         if let Err(error) = self
-            .create_and_run(&spec, port, container_name.clone())
+            .create_and_run(&args, &spec, port, container_name.clone())
             .await
         {
             error!(?error, "failed to create/run container");
@@ -97,11 +99,14 @@ impl ContainerRuntime {
 
     async fn create_and_run(
         &self,
+        args: &WorkerArgs,
         spec: &InstanceSpec,
         port: u16,
         name: String,
     ) -> eyre::Result<()> {
-        let create_response = self.create_container(spec, port, name.clone()).await?;
+        let create_response = self
+            .create_container(args, spec, port, name.clone())
+            .await?;
         trace!("successfully `create` operation");
 
         self.run_container(create_response).await?;
@@ -120,11 +125,12 @@ impl ContainerRuntime {
 
     async fn create_container(
         &self,
+        args: &WorkerArgs,
         spec: &InstanceSpec,
         port: u16,
         name: String,
     ) -> eyre::Result<ContainerCreateResponse> {
-        let config = Self::create_container_config(spec.clone(), port);
+        let config = Self::create_container_config(args, spec.clone(), port);
 
         let options = Some(CreateContainerOptions {
             name,
@@ -178,7 +184,7 @@ impl ContainerRuntime {
         Ok(())
     }
 
-    fn create_container_config(spec: InstanceSpec, port: u16) -> Config<String> {
+    fn create_container_config(args: &WorkerArgs, spec: InstanceSpec, port: u16) -> Config<String> {
         const HOST: &str = "0.0.0.0";
 
         Config {
@@ -191,6 +197,7 @@ impl ContainerRuntime {
             env: Some(vec![format!("PORT={port}"), format!("HOST={HOST}")]),
             host_config: Some(HostConfig {
                 auto_remove: Some(true),
+                network_mode: args.use_docker_network.clone(),
                 // FIXME: These aren't working right now.
                 //
                 // cpu_shares: Some(spec.resource_config.cpu_shares),

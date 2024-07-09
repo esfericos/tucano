@@ -18,7 +18,7 @@ use tokio::{
 use tracing::{error, trace};
 
 mod container_rt;
-use crate::proxy::ProxyHandle;
+use crate::{args::WorkerArgs, proxy::ProxyHandle};
 
 pub struct Runner {
     rx: mpsc::Receiver<Msg>,
@@ -26,6 +26,7 @@ pub struct Runner {
     ports: HashSet<u16>,
     handle: RunnerHandle,
     proxy_handle: ProxyHandle,
+    worker_args: Arc<WorkerArgs>,
     container_runtime: Arc<ContainerRuntime>,
     ctl_client: CtlClient,
 }
@@ -33,6 +34,7 @@ pub struct Runner {
 impl Runner {
     #[must_use]
     pub fn new(
+        worker_args: Arc<WorkerArgs>,
         docker: Arc<Docker>,
         ctl_client: CtlClient,
         proxy: ProxyHandle,
@@ -45,6 +47,7 @@ impl Runner {
             ports: HashSet::default(),
             handle: handle.clone(),
             proxy_handle: proxy,
+            worker_args,
             container_runtime: Arc::new(ContainerRuntime::new(docker)),
             ctl_client,
         };
@@ -78,9 +81,10 @@ impl Runner {
         self.add_instance(spec.instance_id, port);
 
         let rt = self.container_runtime.clone();
+        let args = self.worker_args.clone();
         let handle = self.handle.clone();
         tokio::spawn(async move {
-            rt.run_instance_lifecycle(spec, port, handle).await;
+            rt.run_instance_lifecycle(args, spec, port, handle).await;
         });
         Ok(())
     }
