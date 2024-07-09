@@ -41,7 +41,7 @@ async fn main() -> Result<()> {
 
     let mut bag = JoinSet::new();
 
-    let (proxy_state, proxy_handle) = ProxyState::new();
+    let (proxy_state, proxy_handle) = ProxyState::new(&args);
     bag.spawn(async move {
         let app = proxy::proxy.with_state(proxy_state);
         info!("worker proxy listening at {ANY_IP}:{WORKER_PROXY_PORT}");
@@ -49,7 +49,8 @@ async fn main() -> Result<()> {
     });
 
     let docker = Arc::new(Docker::connect_with_defaults().unwrap());
-    let (runner, runner_handle) = Runner::new(docker, ctl_client.clone(), proxy_handle);
+    let (runner, runner_handle) =
+        Runner::new(args.clone(), docker, ctl_client.clone(), proxy_handle);
     bag.spawn(async move {
         runner.run().await;
     });

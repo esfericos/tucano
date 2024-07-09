@@ -24,6 +24,8 @@ use reqwest::StatusCode;
 use tracing::{instrument, trace};
 use utils::http::{self, OptionExt as _, ResultExt as _};
 
+use crate::args::WorkerArgs;
+
 #[instrument(skip_all)]
 pub async fn proxy(
     State(proxy): State<ProxyState>,
@@ -40,10 +42,15 @@ pub async fn proxy(
         .ok_or_else(|| eyre::eyre!("requested instance doesn't exist at requested worker"))
         .http_error(StatusCode::BAD_GATEWAY, "bad gateway")?;
 
+    let host_name = match proxy.mode {
+        ProxyMode::Normal => format!("127.0.0.1:{port}"),
+        ProxyMode::DockerNetwork => format!("instance-{instance_id}:{port}"),
+    };
+
     *req.uri_mut() = {
         let uri = req.uri();
         let mut parts = uri.clone().into_parts();
-        parts.authority = Authority::from_str(&format!("127.0.0.1:{port}")).ok();
+        parts.authority = Authority::from_str(&host_name).ok();
         parts.scheme = Some(Scheme::HTTP);
         Uri::from_parts(parts).unwrap()
     };
@@ -59,11 +66,22 @@ pub async fn proxy(
 pub struct ProxyState {
     pub ports: Arc<RwLock<HashMap<InstanceId, u16>>>,
     pub client: Client<HttpConnector, Body>,
+    pub mode: ProxyMode,
+}
+
+#[derive(Copy, Clone)]
+pub enum ProxyMode {
+    Normal,
+    DockerNetwork,
 }
 
 impl ProxyState {
     #[must_use]
-    pub fn new() -> (Self, ProxyHandle) {
+    pub fn new(worker_args: &WorkerArgs) -> (Self, ProxyHandle) {
+        let mode = match &worker_args.use_docker_network {
+            Some(_) => ProxyMode::DockerNetwork,
+            None => ProxyMode::Normal,
+        };
         let ports = Arc::new(RwLock::new(HashMap::default()));
         let state = ProxyState {
             ports: ports.clone(),
@@ -73,6 +91,7 @@ impl ProxyState {
                 connector.set_nodelay(true);
                 Client::builder(TokioExecutor::new()).build::<_, Body>(connector)
             },
+            mode,
         };
         let handle = ProxyHandle { ports };
         (state, handle)

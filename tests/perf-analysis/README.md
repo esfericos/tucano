@@ -1,9 +1,25 @@
 # Pre-steps
 
+Note that if you already tested and changed some source code, you'll have to
+build without the cache. E.g.
+
+```bash
+docker compose -f ./tests/perf-analysis/<...>/docker-compose.yml build --no-cache
+```
+
 Build the image
 
 ```bash
 docker image build -t lffg/number-fact:latest ./tests/containers/number-fact
+```
+
+# Setup network
+
+The compose file uses an externally-managed Docker network named
+`tucano-cluster-net`. Make sure it is created before starting the environments.
+
+```bash
+docker network create tucano-cluster-net
 ```
 
 # Single node

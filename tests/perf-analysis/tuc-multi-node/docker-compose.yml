@@ -29,6 +29,7 @@ services:
     entrypoint:
       - /usr/local/bin/worker
       - -c=ctl
+      - --use-docker-network=tucano-cluster-net
     networks:
       - tucano-cluster-net
     volumes:
@@ -48,4 +49,4 @@ services:
 
 networks:
   tucano-cluster-net:
-    attachable: true
+    external: true

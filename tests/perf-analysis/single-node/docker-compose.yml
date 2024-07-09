@@ -15,4 +15,4 @@ services:
 
 networks:
   tucano-cluster-net:
-    attachable: true
+    external: true
