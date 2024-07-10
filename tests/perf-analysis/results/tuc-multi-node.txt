@@ -1,0 +1,44 @@
+          /\      |‾‾| /‾‾/   /‾‾/   
+     /\  /  \     |  |/  /   /  /    
+    /  \/    \    |     (   /   ‾‾\  
+   /          \   |  |\  \ |  (‾)  | 
+  / __________ \  |__| \__\ \_____/ .io
+
+     execution: local
+        script: ./tests/perf-analysis/test.js
+        output: -
+
+     scenarios: (100.00%) 3 scenarios, 16 max VUs, 2m0s max duration (incl. graceful stop):
+              * easyNumbers: 8 looping VUs for 30s (exec: easyNumbers, gracefulStop: 30s)
+              * mediumNumbers: 8 looping VUs for 30s (exec: mediumNumbers, startTime: 30s, gracefulStop: 30s)
+              * hardNumbers: 8 looping VUs for 30s (exec: hardNumbers, startTime: 1m0s, gracefulStop: 30s)
+
+
+     ✗ status is 200
+      ↳  0% — ✓ 0 / ✗ 268150
+
+     checks.....................: 0.00%   ✓ 0          ✗ 268150
+     data_received..............: 42 MB   465 kB/s
+     data_sent..................: 29 MB   322 kB/s
+     easy_response_times........: avg=2.83ms  min=166µs  med=1.39ms  max=161.23ms p(90)=3.7ms   p(95)=5.44ms
+     hard_response_times........: avg=2.48ms  min=189µs  med=1.32ms  max=122.75ms p(90)=3.27ms  p(95)=4.49ms
+     http_req_blocked...........: avg=1.7µs   min=0s     med=1µs     max=3.74ms   p(90)=2µs     p(95)=3µs   
+     http_req_connecting........: avg=33ns    min=0s     med=0s      max=1.75ms   p(90)=0s      p(95)=0s    
+     http_req_duration..........: avg=2.61ms  min=166µs  med=1.34ms  max=161.23ms p(90)=3.4ms   p(95)=4.75ms
+     http_req_failed............: 100.00% ✓ 268150     ✗ 0     
+     http_req_receiving.........: avg=21.56µs min=8µs    med=17µs    max=23.74ms  p(90)=31µs    p(95)=41µs  
+     http_req_sending...........: avg=7.24µs  min=3µs    med=6µs     max=9.32ms   p(90)=9µs     p(95)=13µs  
+     http_req_tls_handshaking...: avg=0s      min=0s     med=0s      max=0s       p(90)=0s      p(95)=0s    
+     http_req_waiting...........: avg=2.58ms  min=147µs  med=1.31ms  max=161.14ms p(90)=3.37ms  p(95)=4.71ms
+     http_reqs..................: 268150  2978.79649/s
+     iteration_duration.........: avg=26.85ms min=6.93ms med=18.03ms max=275.32ms p(90)=64.47ms p(95)=80.7ms
+     iterations.................: 26815   297.879649/s
+     medium_response_times......: avg=2.54ms  min=176µs  med=1.31ms  max=141.58ms p(90)=3.28ms  p(95)=4.49ms
+     vus........................: 8       min=8        max=8   
+     vus_max....................: 16      min=16       max=16  
+
+
+running (1m30.0s), 00/16 VUs, 26815 complete and 0 interrupted iterations
+easyNumbers   ✓ [======================================] 8 VUs  30s
+mediumNumbers ✓ [======================================] 8 VUs  30s
+hardNumbers   ✓ [======================================] 8 VUs  30s

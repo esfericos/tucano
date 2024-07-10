@@ -1,46 +1,44 @@
-❯ k6 run ./tests/perf-analysis/test.js
-
           /\      |‾‾| /‾‾/   /‾‾/   
      /\  /  \     |  |/  /   /  /    
     /  \/    \    |     (   /   ‾‾\  
    /          \   |  |\  \ |  (‾)  | 
   / __________ \  |__| \__\ \_____/ .io
 
-  execution: local
-     script: ./tests/perf-analysis/test.js
-     output: -
+     execution: local
+        script: ./tests/perf-analysis/test.js
+        output: -
 
-  scenarios: (100.00%) 3 scenarios, 16 max VUs, 2m0s max duration (incl. graceful stop):
-           * easyNumbers: 8 looping VUs for 30s (exec: easyNumbers, gracefulStop: 30s)
-           * mediumNumbers: 8 looping VUs for 30s (exec: mediumNumbers, startTime: 30s, gracefulStop: 30s)
-           * hardNumbers: 8 looping VUs for 30s (exec: hardNumbers, startTime: 1m0s, gracefulStop: 30s)
+     scenarios: (100.00%) 3 scenarios, 16 max VUs, 2m0s max duration (incl. graceful stop):
+              * easyNumbers: 8 looping VUs for 30s (exec: easyNumbers, gracefulStop: 30s)
+              * mediumNumbers: 8 looping VUs for 30s (exec: mediumNumbers, startTime: 30s, gracefulStop: 30s)
+              * hardNumbers: 8 looping VUs for 30s (exec: hardNumbers, startTime: 1m0s, gracefulStop: 30s)
 
 
      ✓ status is 200
 
-     checks.........................: 100.00% ✓ 504      ✗ 0   
-     data_received..................: 118 kB  985 B/s
-     data_sent......................: 54 kB   450 B/s
-     easy_response_times............: avg=1.2ms    min=363µs  med=997µs  max=8.11ms   p(90)=1.25ms  p(95)=1.49ms  
-     hard_response_times............: avg=15.96s   min=1.19s  med=5.6s   max=43.3s    p(90)=42.37s  p(95)=42.97s  
-     http_req_blocked...............: avg=42.24µs  min=1µs    med=3µs    max=5.58ms   p(90)=4µs     p(95)=9.54µs  
-     http_req_connecting............: avg=8.83µs   min=0s     med=0s     max=331µs    p(90)=0s      p(95)=0s      
-     http_req_duration..............: avg=790.25ms min=363µs  med=1.22ms max=43.3s    p(90)=63.4ms  p(95)=894.25ms
-       { expected_response:true }...: avg=790.25ms min=363µs  med=1.22ms max=43.3s    p(90)=63.4ms  p(95)=894.25ms
-     http_req_failed................: 0.00%   ✓ 0        ✗ 504 
-     http_req_receiving.............: avg=36.52µs  min=15µs   med=30µs   max=155µs    p(90)=61µs    p(95)=75µs    
-     http_req_sending...............: avg=41.86µs  min=5µs    med=12µs   max=5.28ms   p(90)=24.69µs p(95)=40.84µs 
-     http_req_tls_handshaking.......: avg=0s       min=0s     med=0s     max=0s       p(90)=0s      p(95)=0s      
-     http_req_waiting...............: avg=790.17ms min=337µs  med=1.16ms max=43.3s    p(90)=63.32ms p(95)=894.21ms
-     http_reqs......................: 504     4.199773/s
-     iteration_duration.............: avg=10.32s   min=10.01s med=10.06s max=10.97s   p(90)=10.96s  p(95)=10.97s  
-     iterations.....................: 48      0.399978/s
-     medium_response_times..........: avg=61.91ms  min=630µs  med=3.21ms max=898.83ms p(90)=86.16ms p(95)=639.73ms
-     vus............................: 8       min=8      max=16
-     vus_max........................: 16      min=16     max=16
+     checks.........................: 100.00% ✓ 104418     ✗ 0     
+     data_received..................: 23 MB   191 kB/s
+     data_sent......................: 10 MB   85 kB/s
+     easy_response_times............: avg=2.26ms   min=204µs  med=1.41ms  max=97.89ms p(90)=4.2ms    p(95)=5.77ms 
+     hard_response_times............: avg=8.44s    min=7.55s  med=8.51s   max=8.86s   p(90)=8.86s    p(95)=8.86s  
+     http_req_blocked...............: avg=1.94µs   min=0s     med=1µs     max=2.31ms  p(90)=2µs      p(95)=3µs    
+     http_req_connecting............: avg=154ns    min=0s     med=0s      max=2.24ms  p(90)=0s       p(95)=0s     
+     http_req_duration..............: avg=5.34ms   min=204µs  med=1.43ms  max=8.86s   p(90)=4.46ms   p(95)=6.46ms 
+       { expected_response:true }...: avg=5.34ms   min=204µs  med=1.43ms  max=8.86s   p(90)=4.46ms   p(95)=6.46ms 
+     http_req_failed................: 0.00%   ✓ 0          ✗ 104418
+     http_req_receiving.............: avg=23.14µs  min=8µs    med=18µs    max=7.48ms  p(90)=34µs     p(95)=47µs   
+     http_req_sending...............: avg=7.53µs   min=3µs    med=6µs     max=5.28ms  p(90)=10µs     p(95)=14µs   
+     http_req_tls_handshaking.......: avg=0s       min=0s     med=0s      max=0s      p(90)=0s       p(95)=0s     
+     http_req_waiting...............: avg=5.31ms   min=182µs  med=1.4ms   max=8.86s   p(90)=4.42ms   p(95)=6.41ms 
+     http_reqs......................: 104418  870.117073/s
+     iteration_duration.............: avg=47.68ms  min=5.71ms med=19.4ms  max=3.7s    p(90)=40.85ms  p(95)=55.27ms
+     iterations.....................: 10441   87.005041/s
+     medium_response_times..........: avg=177.39ms min=735µs  med=79.41ms max=2.48s   p(90)=795.81ms p(95)=1.11s  
+     vus............................: 8       min=8        max=15  
+     vus_max........................: 16      min=16       max=16  
 
 
-running (2m00.0s), 00/16 VUs, 48 complete and 8 interrupted iterations
+running (2m00.0s), 00/16 VUs, 10441 complete and 8 interrupted iterations
 easyNumbers   ✓ [======================================] 8 VUs  30s
 mediumNumbers ✓ [======================================] 8 VUs  30s
 hardNumbers   ✓ [======================================] 8 VUs  30s

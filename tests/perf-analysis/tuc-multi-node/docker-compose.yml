@@ -12,7 +12,7 @@ services:
       - "8080:8080" # balancer
       - "7070:7070" # http
     environment:
-      RUST_LOG: info,ctl=trace
+      RUST_LOG: info
     deploy:
       resources:
         limits:
@@ -35,7 +35,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      RUST_LOG: info,worker=trace
+      RUST_LOG: info
     deploy:
       resources:
         limits:
