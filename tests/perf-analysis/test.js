@@ -104,6 +104,5 @@ function testAPI(numbers, tag) {
 
     trends[tag].add(res.timings.duration);
 
-    sleep(1);
   }
 }
